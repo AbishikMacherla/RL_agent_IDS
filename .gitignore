@@ -16,11 +16,15 @@ build/
 data/
 processed_data/
 
-# Model files (optional - uncomment if you want to track them)
-# models/
+# Trained models (regenerated via training scripts)
+models/
 
 # Logs
 logs/
+
+# LaTeX dissertation & personal notes (private)
+LaTex/
+Notes/
 
 # IDE
 .vscode/
