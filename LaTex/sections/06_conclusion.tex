@@ -1,0 +1,61 @@
+% Conclusion Section
+
+\section{Conclusion}
+
+This study investigated the viability of Reinforcement Learning agents for autonomous network intrusion detection, comparing DQN and PPO algorithms against established machine learning baselines on the CIC-IDS2017 benchmark dataset.
+
+\subsection{Summary of Contributions}
+
+The key contributions of this work are:
+
+\begin{enumerate}
+    \item \textbf{Custom RL Environment}: A Gymnasium-compatible intrusion detection environment was implemented, providing a reusable framework for future RL-IDS research. The environment supports configurable reward structures and zero-day simulation through attack category exclusion.
+    
+    \item \textbf{Reward Engineering Demonstration}: The asymmetric reward structure (10:1 FN:FP penalty ratio) successfully influenced the DQN agent to achieve 97\% recall, validating that detection priorities can be tuned through reward design without architectural changes.
+    
+    \item \textbf{Algorithm Comparison}: DQN proved more sample-efficient than PPO for this discrete binary classification task, converging within 2,000 episodes while PPO required significantly more training time.
+    
+    \item \textbf{Honest Assessment}: The limitations of offline RL on static datasets were explicitly acknowledged, positioning the work as a proof-of-concept rather than a production-ready system.
+\end{enumerate}
+
+\subsection{Key Findings}
+
+The experimental results reveal a nuanced trade-off between supervised learning and reinforcement learning approaches:
+
+\begin{itemize}
+    \item \textbf{Static Performance}: ML baselines (Random Forest, XGBoost) achieved near-perfect accuracy (99.9\%) on the standard benchmark, confirming their suitability for known threat detection.
+    
+    \item \textbf{Security-First Configuration}: The DQN agent's 97\% recall demonstrates that RL enables direct encoding of security priorities into detection policy, a capability not easily replicated through loss function weighting alone.
+    
+    \item \textbf{Zero-Day Generalisation}: The DQN agent trained without DDoS exposure successfully detected 94.21\% of DDoS attacks (120,612 out of 128,025), demonstrating that reward-driven learning develops transferable anomaly detection capabilities beyond memorising specific attack signatures.
+\end{itemize}
+
+\subsection{Limitations}
+
+Several limitations constrain the generalisability of these findings:
+
+\begin{enumerate}
+    \item The CIC-IDS2017 dataset, while modern compared to NSL-KDD, represents 2017 network conditions and may not reflect contemporary attack patterns.
+    
+    \item Training on labelled data with immediate feedback more closely resembles offline RL or contextual bandits than genuine sequential decision-making under uncertainty.
+    
+    \item Inference latency was not formally benchmarked; real-time deployment feasibility remains to be validated.
+\end{enumerate}
+
+\subsection{Future Work}
+
+Several directions for future research emerge from this study:
+
+\begin{itemize}
+    \item \textbf{Extended Training}: Increase PPO training to 500,000+ timesteps to achieve comparable performance with DQN.
+    
+    \item \textbf{Curriculum Learning}: Train agents progressively on easier cases before introducing complex attack patterns.
+    
+    \item \textbf{CybORG++ Migration}: Migrate the environment to the full CybORG++ framework to enable proactive defence scenarios beyond detection.
+    
+    \item \textbf{Online Validation}: Deploy agents in controlled network testbeds with delayed, partial feedback to assess real-world viability.
+\end{itemize}
+
+\subsection{Concluding Remarks}
+
+Reinforcement Learning offers a compelling paradigm for autonomous network defence, not as a replacement for traditional methods, but as a complementary approach that enables security practitioners to encode complex, context-dependent risk preferences directly into detection systems. While significant challenges remain before production deployment, this work demonstrates that the foundational concepts are sound and merit continued investigation.

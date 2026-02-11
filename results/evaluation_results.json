@@ -1,0 +1,52 @@
+{
+  "standard": {
+    "Random Forest": {
+      "Accuracy": 99.9,
+      "Precision": 99.64,
+      "Recall": 99.86,
+      "F1": 99.75,
+      "ConfusionMatrix": [
+        [
+          453866,
+          399
+        ],
+        [
+          158,
+          111153
+        ]
+      ]
+    },
+    "XGBoost": {
+      "Accuracy": 99.95,
+      "Precision": 99.83,
+      "Recall": 99.9,
+      "F1": 99.87,
+      "ConfusionMatrix": [
+        [
+          454076,
+          189
+        ],
+        [
+          106,
+          111205
+        ]
+      ]
+    },
+    "DQN": {
+      "Accuracy": 91.2,
+      "Precision": 69.92,
+      "Recall": 97.04,
+      "F1": 81.28,
+      "ConfusionMatrix": [
+        [
+          407803,
+          46462
+        ],
+        [
+          3298,
+          108013
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+% Results Section - Complete Implementation
+
+%\section{Experimental Results}
+%
+%This section presents the experimental results from training and evaluating the RL agents and ML baselines across the defined scenarios.
+%
+%\subsection{Standard Classification Performance}
+%
+%Table~\ref{tab:standard-results} presents the comparative performance of all models on the standard 80/20 train/test split of the CIC-IDS2017 dataset.
+%
+%\begin{table}[h]
+%\centering
+%\caption{Standard Classification Performance on CIC-IDS2017}
+%\label{tab:standard-results}
+%\begin{tabular}{|l|c|c|c|c|}
+%\hline
+%\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1 Score} \\
+%\hline
+%Random Forest & 99.90\% & 99.64\% & 99.86\% & 99.75\% \\
+%XGBoost & 99.95\% & 99.83\% & 99.90\% & 99.87\% \\
+%\hline
+%DQN (RL) & 91.20\% & 70.00\% & \textbf{97.00\%} & 81.00\% \\
+%PPO (RL) & 69.23\% & 31.55\% & 48.20\% & 38.14\% \\
+%\hline
+%\end{tabular}
+%\end{table}
+%
+%The supervised ML baselines achieved near-perfect classification accuracy, with XGBoost marginally outperforming Random Forest across all metrics. However, a critical observation emerges when examining the Recall metric: the DQN agent achieved 97.00\% recall, demonstrating that the asymmetric reward structure successfully prioritised attack detection over raw accuracy.
+%
+%The trade-off is evident in the precision values. The DQN agent's 70\% precision indicates a higher rate of false positives compared to ML baselines. In security contexts, this trade-off is often acceptable; missing 3\% of attacks (DQN) versus missing 0.1\% (XGBoost) may seem comparable, but at enterprise scale handling millions of connections daily, this difference translates to thousands of undetected intrusions.
+%
+%The PPO agent underperformed relative to expectations, achieving only 48.20\% recall. Analysis of training logs indicated that PPO required significantly more timesteps to converge on this task. With only 200,000 timesteps, the agent had not fully learned the policy; future experiments with extended training (500,000+ timesteps) are recommended.
+%
+%\subsection{Zero-Day Attack Detection}
+%
+%To evaluate generalisation capabilities, Scenario 2 tested each model's ability to detect DDoS attacks that were \textit{excluded} from training. The DQN agent was retrained on all attack categories except DDoS, then evaluated on the full DDoS subset (128,025 samples). For comparison, the standard models (trained \textit{with} DDoS exposure) were also evaluated on the same DDoS samples.
+%
+%\begin{table}[h]
+%\centering
+%\caption{Zero-Day DDoS Detection Performance}
+%\label{tab:zeroday-results}
+%\begin{tabular}{|l|c|c|c|c|}
+%\hline
+%\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1 Score} \\
+%\hline
+%\multicolumn{5}{|l|}{\textit{Trained WITHOUT DDoS (Zero-Day Scenario)}} \\
+%\hline
+%DQN (No DDoS) & 94.21\% & 100.00\% & \textbf{94.21\%} & 97.02\% \\
+%\hline
+%\multicolumn{5}{|l|}{\textit{Trained WITH DDoS (Reference Baseline)}} \\
+%\hline
+%DQN (Standard) & 99.96\% & 100.00\% & 99.96\% & 99.98\% \\
+%Random Forest & 99.97\% & 100.00\% & 99.97\% & 99.99\% \\
+%XGBoost & 99.92\% & 100.00\% & 99.92\% & 99.96\% \\
+%\hline
+%\end{tabular}
+%\end{table}
+%
+%The zero-day results reveal a notable finding: the DQN agent trained \textit{without any DDoS exposure} successfully detected 94.21\% of DDoS attacks (120,612 out of 128,025), missing only 7,413 samples. This demonstrates that the reward-driven learning approach enabled the agent to develop generalised anomaly detection capabilities that transfer to previously unseen attack categories.
+%
+%The 5.79\% miss rate in the zero-day scenario is significant but expected; the agent had no prior exposure to DDoS traffic patterns. Critically, the agent achieved 100\% precision on this task, meaning every sample it flagged as malicious was indeed a DDoS attack. This suggests the agent learned general indicators of anomalous behaviour rather than memorising specific attack signatures.
+%
+%For reference, the models trained with DDoS exposure achieved near-perfect detection (99.92--99.97\%), confirming that DDoS patterns are learnable when present in training data. The gap between 94.21\% (zero-day) and 99.96\% (standard DQN) quantifies the generalisation cost of encountering truly novel attacks.
+%
+%\subsection{Training Dynamics}
+%
+%The learning behaviour of the RL agents was analysed through cumulative reward trajectories over training episodes.
+%
+%\subsubsection{DQN Training Behaviour}
+%
+%The DQN agent exhibited stable learning progression across 2,000 episodes. Initial exploration (high $\epsilon$) resulted in approximately random performance, with cumulative episode rewards near zero. As $\epsilon$ decayed and the agent exploited learned Q-values, episode rewards increased steadily.
+%
+%Key observations:
+%\begin{itemize}
+%    \item \textbf{Convergence}: The agent reached stable performance by approximately episode 1,500, with diminishing improvements thereafter.
+%    \item \textbf{Epsilon Decay Impact}: The transition from exploration to exploitation (around episode 500-800) corresponded with a notable improvement in consistent reward accumulation.
+%    \item \textbf{False Positive Reduction}: Analysis of per-episode metrics showed that false positive rates decreased as training progressed, indicating the agent learned to better discriminate benign traffic.
+%\end{itemize}
+%
+%\subsubsection{PPO Training Behaviour}
+%
+%PPO training showed more gradual improvement compared to DQN's sharper learning curve. The policy gradient updates resulted in smoother but slower convergence. At 200,000 timesteps, the agent had not reached the same performance level as DQN at 2,000 episodes (approximately 2 million timesteps total).
+%
+%This suggests that for discrete, binary classification tasks with clear reward signals, value-based methods like DQN may be more sample-efficient than policy gradient methods like PPO.
+%
+%\subsection{Summary of Findings}
+%
+%The experimental results confirm several key hypotheses:
+%
+%\begin{enumerate}
+%    \item \textbf{ML Baseline Superiority on Static Data}: On the standard benchmark with known attack types, supervised ML models (Random Forest, XGBoost) achieved near-perfect accuracy. This aligns with previous research demonstrating the effectiveness of ensemble methods on the CIC-IDS2017 dataset.
+%    
+%    \item \textbf{Reward Engineering Effectiveness}: The asymmetric reward structure successfully influenced the DQN agent's behaviour, achieving 97\% recall compared to the ML baselines' 99.9\%. While the absolute difference appears small, the RL approach demonstrates that detection priorities can be \textit{tuned} through reward design alone, without retraining or architectural changes.
+%    
+%    \item \textbf{Sample Efficiency Trade-offs}: DQN proved more sample-efficient than PPO for this discrete classification task, though PPO may offer advantages in more complex, continuous action spaces typical of automated response systems.
+%    
+%    \item \textbf{Zero-Day Generalisation}: The zero-day DDoS experiment provides the strongest evidence for the RL approach: the DQN agent detected 94.21\% of DDoS attacks \textit{never seen during training}. This 100\% precision with 94.21\% recall demonstrates that reward-driven learning can develop transferable anomaly detection capabilities beyond memorising specific attack signatures.
+%\end{enumerate}

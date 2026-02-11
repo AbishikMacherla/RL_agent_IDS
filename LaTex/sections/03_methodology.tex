@@ -1,0 +1,139 @@
+% Methodology Section - Complete Implementation
+
+\section{Experimental Methodology}
+
+This section describes the experimental setup, including the environment design, dataset preprocessing, algorithm implementations, and evaluation scenarios.
+
+\subsection{Environment Design}
+
+A custom OpenAI Gymnasium-compatible environment (\texttt{IdsEnv}) was implemented to simulate network traffic processing as a sequential decision-making task. The environment was designed following principles from the CybORG++ framework \cite{emerson2024cyborgplusplus}, adapted for intrusion detection classification.
+
+\begin{itemize}
+    \item \textbf{State Space}: The observation space consisted of 80 normalised network flow features extracted from the CIC-IDS2017 dataset. Features included packet size statistics, inter-arrival times, flow duration, and payload characteristics. All features were scaled to the range $[0, 1]$ using min-max normalisation to ensure stable neural network training.
+    
+    \item \textbf{Action Space}: A discrete action space of size 2 was defined, where action 0 represented ``Allow'' (classify as benign) and action 1 represented ``Block'' (classify as malicious).
+    
+    \item \textbf{Reward Function}: An asymmetric reward structure was implemented to reflect the security-first priority of intrusion detection:
+    \begin{itemize}
+        \item True Positive (correctly blocking an attack): $+10$
+        \item True Negative (correctly allowing benign traffic): $+1$
+        \item False Positive (incorrectly blocking benign traffic): $-1$
+        \item False Negative (missing an attack): $-10$
+    \end{itemize}
+    This reward asymmetry was designed to encourage high recall, as missing an attack in a security context is significantly more costly than a false alarm.
+    
+    \item \textbf{Episode Structure}: Each episode began at a random position in the dataset to prevent the agent from overfitting to initial samples. The episode terminated after processing a fixed number of samples (1,000 steps) or upon reaching the dataset boundary.
+\end{itemize}
+
+\subsection{Dataset Preprocessing}
+
+The CIC-IDS2017 benchmark dataset \cite{sharafaldin2018toward} was selected for its realistic traffic generation methodology and inclusion of modern attack types. The following preprocessing pipeline was applied:
+
+\begin{itemize}
+    \item \textbf{Data Cleaning}: Infinite values and NaN entries were removed. Duplicate entries were dropped to reduce redundancy.
+    
+    \item \textbf{Feature Selection}: 80 features were retained after removing identifier columns (source/destination IP, ports) that could cause data leakage. Features included flow-level statistics such as packet lengths, inter-arrival times, and flag counts.
+    
+    \item \textbf{Label Encoding}: Multi-class attack labels were encoded into binary format (0 = Benign, 1 = Attack) for the primary classification task. Raw labels were preserved separately for zero-day simulation experiments.
+    
+    \item \textbf{Train/Test Split}: An 80/20 stratified random split was applied, maintaining class distribution across both sets. The training set contained approximately 2.27 million samples, with the test set containing approximately 568,000 samples.
+    
+    \item \textbf{Normalisation}: Min-max scaling was applied to all features independently to ensure values fell within the $[0, 1]$ range required by the RL environment.
+\end{itemize}
+
+\subsubsection{Data Leakage Controls}
+
+To ensure evaluation validity and address concerns regarding inflated performance metrics common in IDS research \cite{mondragon2025advanced}, the following controls were implemented:
+
+\begin{enumerate}
+    \item \textbf{Identifier Removal}: Source/destination IP addresses, port numbers, and flow identifiers were excluded from the feature set. These fields can create spurious correlations if attack traffic originates from specific IP ranges in the dataset.
+    
+    \item \textbf{Stratified Splitting}: The train/test split was stratified by class label to maintain consistent attack-to-benign ratios. This prevents the model from exploiting class distribution differences between splits.
+    
+    \item \textbf{Normalisation After Splitting}: Min-max scaling was fitted only on the training set. The test set was transformed using the training set statistics to prevent information leakage from future observations.
+    
+    \item \textbf{Temporal Consideration}: While a fully temporal split (training on earlier days, testing on later days) would be ideal, the current implementation uses random stratified splitting. This limitation is acknowledged as the CIC-IDS2017 dataset spans only 5 days with specific attack types concentrated on particular days.
+    
+    \item \textbf{Zero-Day Exclusion Protocol}: For zero-day experiments, entire attack categories were excluded from training rather than individual samples. This ensures the agent has received no exposure to the attack class being evaluated.
+\end{enumerate}
+
+\subsection{Algorithm Implementations}
+
+\subsubsection{Deep Q-Network (DQN)}
+
+The DQN agent was implemented using a custom neural network architecture to approximate Q-values for the discrete action space. The implementation followed the original DQN algorithm \cite{mnih2015human} with the following specifications:
+
+\begin{itemize}
+    \item \textbf{Network Architecture}: A feedforward neural network with two hidden layers of 64 neurons each, using ReLU activation functions. The input layer accepted 80 features, and the output layer produced Q-values for 2 actions.
+    
+    \item \textbf{Experience Replay}: A replay buffer of 100,000 transitions was maintained to break temporal correlations and improve sample efficiency. Mini-batches of 64 transitions were sampled uniformly for training updates.
+    
+    \item \textbf{Target Network}: A separate target network was used with soft updates ($\tau = 0.001$) to stabilise training.
+    
+    \item \textbf{Exploration Strategy}: An $\epsilon$-greedy policy was employed with $\epsilon$ decaying from 1.0 to 0.01 over training using a decay factor of 0.999 per episode.
+    
+    \item \textbf{Training Parameters}: The agent was trained for 2,000 episodes with a maximum of 1,000 steps per episode. Learning rate was set to $5 \times 10^{-4}$ with the Adam optimiser and discount factor $\gamma = 0.99$.
+\end{itemize}
+
+\subsubsection{Proximal Policy Optimization (PPO)}
+
+A PPO agent was implemented using the Stable-Baselines3 library \cite{stable-baselines3} to leverage its policy-gradient stability and ease of hyperparameter tuning:
+
+\begin{itemize}
+    \item \textbf{Policy Network}: A shared actor-critic architecture with two hidden layers of 64 neurons each was used.
+    
+    \item \textbf{Training Parameters}: The agent was trained for 200,000 timesteps with the following hyperparameters:
+    \begin{itemize}
+        \item Learning rate: $3 \times 10^{-4}$
+        \item N steps per update: 2,048
+        \item Batch size: 64
+        \item Number of epochs per update: 10
+        \item Discount factor ($\gamma$): 0.99
+        \item GAE lambda: 0.95
+        \item Clip range: 0.2
+        \item Entropy coefficient: 0.01
+    \end{itemize}
+    
+    \item \textbf{Clipping Mechanism}: The PPO clipping objective was used to prevent destabilising policy updates, constraining the policy ratio within $[1 - \epsilon, 1 + \epsilon]$ where $\epsilon = 0.2$.
+\end{itemize}
+
+\subsubsection{Machine Learning Baselines}
+
+Random Forest and XGBoost classifiers were trained as supervised learning baselines to provide performance benchmarks against the RL approaches:
+
+\begin{itemize}
+    \item \textbf{Random Forest}: Implemented using scikit-learn with 100 estimators, maximum depth of 20, and minimum samples split of 5. Random state was fixed at 42 for reproducibility.
+    
+    \item \textbf{XGBoost}: Implemented using the XGBoost library with 100 estimators, maximum depth of 6, learning rate of 0.1, and gamma of 0. These models were trained on the same 80\% training split and evaluated on the held-out 20\% test set.
+\end{itemize}
+
+\subsection{Evaluation Scenarios}
+
+Three experimental scenarios were designed to comprehensively evaluate the detection capabilities and adaptability of each approach:
+
+\begin{itemize}
+    \item \textbf{Scenario 1 (Standard Classification)}: All models were trained and tested on the full CIC-IDS2017 dataset using the 80/20 split to evaluate baseline detection capabilities on known attack types.
+    
+    \item \textbf{Scenario 2 (Zero-Day DDoS Simulation)}: The RL agents were trained on all traffic \textit{excluding} DDoS attacks, then tested specifically on the held-out DDoS samples. This simulated encountering a novel high-volume threat not seen during training.
+    
+    \item \textbf{Scenario 3 (Zero-Day Web Attack Simulation)}: Similar to Scenario 2, but holding out Web Application attacks (SQL Injection, XSS, Brute Force) to test detection of stealthier application-layer threats.
+\end{itemize}
+
+\subsection{Dashboard Implementation}
+
+A Streamlit-based interactive dashboard was developed to facilitate real-time training visualisation and hyperparameter experimentation. The dashboard provided:
+
+\begin{itemize}
+    \item Live training metrics (reward curves, episode lengths)
+    \item Real-time confusion matrix updates during evaluation
+    \item Attack type breakdown and classification statistics
+    \item Hyperparameter tuning interface for reward values and network architecture
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+
+\begin{itemize}
+    \item Standard metrics including Accuracy, Precision, Recall, and F1-Score were recorded for all models.
+    \item Emphasis was placed on \textbf{Recall} (Detection Rate), as missing an attack in a security context is far more critical than a false positive.
+    \item Confusion matrices were generated to visualise the exact breakdown of True Positives, False Positives, True Negatives, and False Negatives.
+\end{itemize}
