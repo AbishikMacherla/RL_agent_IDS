@@ -21,8 +21,11 @@ class IdsEnv(gym.Env):
     """
     metadata = {'render_modes': ['human']}
 
-    def __init__(self, data_dir='/home/abishik/HONOURS_PROJECT/processed_data', exclude_labels=None):
+    def __init__(self, data_dir='/home/abishik/HONOURS_PROJECT/processed_data', exclude_labels=None, reward_config=None):
         super(IdsEnv, self).__init__()
+        
+        # Configurable reward structure (defaults to security-first 10:1)
+        self.rewards = reward_config or {'tp': 10.0, 'tn': 1.0, 'fn': -10.0, 'fp': -1.0}
         
         # Load the full RL dataset (New 2017 Standard Naming)
         X_path = os.path.join(data_dir, 'X_2017_full.parquet')
@@ -80,15 +83,11 @@ class IdsEnv(gym.Env):
         """Execute one step: agent classifies current traffic."""
         true_label = self.y[self.current_step]
         
-        # Asymmetric Reward Structure (Security-First)
-        # - Catching attacks is highly rewarded (+10)
-        # - Missing attacks is heavily penalized (-10)
-        # - False alarms have small penalty (-1)
-        # - Correct benign has small reward (+1)
+        # Reward based on configurable reward structure
         if action == true_label:
-            reward = 10.0 if action == 1 else 1.0  # True Positive or True Negative
+            reward = self.rewards['tp'] if action == 1 else self.rewards['tn']
         else:
-            reward = -10.0 if true_label == 1 else -1.0  # False Negative or False Positive
+            reward = self.rewards['fn'] if true_label == 1 else self.rewards['fp']
         
         self.current_step += 1
         terminated = self.current_step >= self.max_steps

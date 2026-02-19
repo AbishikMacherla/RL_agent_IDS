@@ -1,14 +1,15 @@
 <p align="center">
   <h1 align="center">🛡️ RL-Enhanced Intrusion Detection System</h1>
   <p align="center">
-    <strong>A Deep Reinforcement Learning approach to Network Intrusion Detection</strong>
+    <strong>Deep Reinforcement Learning for Autonomous Network Defence</strong>
   </p>
   <p align="center">
     <a href="#overview">Overview</a> •
     <a href="#architecture">Architecture</a> •
+    <a href="#experiments">Experiments</a> •
     <a href="#results">Results</a> •
     <a href="#getting-started">Getting Started</a> •
-    <a href="#usage">Usage</a>
+    <a href="#dashboard">Dashboard</a>
   </p>
 </p>
 
@@ -16,92 +17,116 @@
 
 ## Overview
 
-This project explores the application of **Deep Reinforcement Learning (DRL)** for network intrusion detection, comparing a custom **Deep Q-Network (DQN)** agent against traditional machine learning baselines (**Random Forest** and **XGBoost**). The system is trained and evaluated on the [CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) dataset.
+This project explores **Deep Reinforcement Learning (DRL)** for network intrusion detection, comparing a custom **Deep Q-Network (DQN)** and **Proximal Policy Optimization (PPO)** agent against traditional ML baselines (**Random Forest** and **XGBoost**).
+
+The system is evaluated across **4 experimental scenarios** including standard classification, zero-day attack detection, and cross-dataset generalisation.
 
 ### Key Features
 
-- 🤖 **Custom DQN Agent** — trained via a Gymnasium environment that simulates real-time traffic classification
-- 🌲 **ML Baselines** — Random Forest and XGBoost classifiers for benchmark comparison
-- 🧪 **Zero-Day Simulation** — label-exclusion mechanism to test detection of unseen attack types (e.g., DDoS)
-- 📊 **Interactive Dashboard** — Streamlit-based visualisation of model performance metrics
-- ⚙️ **Reproducible Pipeline** — data preprocessing, training, and evaluation scripts with documented hyperparameters
+- 🤖 **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
+- 🌲 **ML Baselines** — Random Forest and XGBoost for benchmark comparison
+- 🧪 **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
+- 🔄 **Cross-Dataset Generalisation** — train on CIC-IDS2017, test on CIC-IoT-2023
+- 📊 **Streamlit Dashboard** — interactive visualisation with Plotly charts
+- 🔬 **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
+- ⚙️ **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    CIC-IDS2017 Dataset                  │
-│              (2.8M labelled traffic flows)              │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-                       ▼
-         ┌─────────────────────────┐
-         │   Data Preprocessing    │
-         │  (data_preprocessing.py)│
-         │  • Feature scaling      │
-         │  • Label encoding       │
-         │  • Train/Test split     │
-         └─────────┬───────────────┘
-                   │
-          ┌────────┴────────┐
-          ▼                 ▼
-   ┌──────────────┐  ┌──────────────┐
-   │  ML Baselines │  │  RL Agent    │
-   │ (ml_baselines │  │ (train_rl_  │
-   │    .py)       │  │  agent.py)  │
-   │               │  │             │
-   │ • Random      │  │ • DQN with  │
-   │   Forest      │  │   replay    │
-   │ • XGBoost     │  │   buffer    │
-   └──────┬───────┘  └──────┬──────┘
-          │                  │
-          └────────┬─────────┘
-                   ▼
-         ┌─────────────────────┐
-         │  Unified Evaluation │
-         │ (evaluate_all_      │
-         │  models.py)         │
-         │ • Standard scenario │
-         │ • Zero-day scenario │
-         └─────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│           CIC-IDS2017 + CIC-IoT-2023 Datasets              │
+│           (2.8M + 1.5M labelled traffic flows)              │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+                        ▼
+           ┌──────────────────────────┐
+           │    Data Preprocessing    │
+           │  (data_preprocessing.py) │
+           │  • Feature scaling       │
+           │  • Label encoding        │
+           │  • Feature mapping (12   │
+           │    common features for   │
+           │    cross-dataset)        │
+           └──────────┬──────────────┘
+                      │
+            ┌─────────┴─────────┐
+            ▼                   ▼
+    ┌───────────────┐   ┌───────────────┐
+    │  ML Baselines │   │  RL Agents    │
+    │ (ml_baselines │   │ • DQN (train_ │
+    │    .py)       │   │   rl_agent)   │
+    │               │   │ • PPO (train_ │
+    │ • Random      │   │   ppo_agent)  │
+    │   Forest      │   │               │
+    │ • XGBoost     │   │ Gym Env:      │
+    └───────┬───────┘   │ ids_env.py    │
+            │           └───────┬───────┘
+            └─────────┬─────────┘
+                      ▼
+        ┌───────────────────────────┐
+        │  Master Experiment Runner │
+        │  (run_all_scenarios.py)   │
+        │  • 4 Scenarios            │
+        │  • ROC-AUC + Latency      │
+        │  • Confusion Matrices     │
+        └───────────┬───────────────┘
+                    ▼
+        ┌───────────────────────────┐
+        │   Streamlit Dashboard     │
+        │   (dashboard.py)          │
+        │   • Plotly charts         │
+        │   • Model comparison      │
+        │   • Interactive filtering │
+        └───────────────────────────┘
 ```
+
+---
+
+## Experiments
+
+### 4 Dissertation Scenarios
+
+| # | Scenario | Purpose |
+|:-:|:---------|:--------|
+| 1 | **Standard Classification** | All models on CIC-IDS2017 (78 features) — baseline comparison |
+| 2 | **Zero-Day DDoS** | RL trained WITHOUT DDoS → tested on DDoS-only data |
+| 3 | **Zero-Day Web Attacks** | RL trained WITHOUT web attacks → tested on web-only data |
+| 4 | **Cross-Dataset** | Train on CIC-IDS2017 → Test on CIC-IoT-2023 (12 features) |
+
+### 8 DQN Hyperparameter Experiments
+
+Systematic tuning of reward structure, network architecture, and training duration to understand how each factor affects agent behaviour.
 
 ---
 
 ## Results
 
-### Standard Classification (CIC-IDS2017 Test Set)
+Results are stored in `results/all_scenarios_results.json` and viewable via the dashboard.
 
-| Model | Accuracy | Precision | Recall | F1 Score |
-|:------|:--------:|:---------:|:------:|:--------:|
-| **XGBoost** | 99.95% | 99.83% | 99.90% | 99.87% |
-| **Random Forest** | 99.90% | 99.64% | 99.86% | 99.75% |
-| **DQN Agent** | 91.20% | 69.92% | 97.04% | 81.28% |
-
-> **Note:** The DQN agent achieves **97% recall** (attack detection rate) despite lower overall accuracy, demonstrating the RL agent's security-first reward design — it prioritises catching attacks over minimising false alarms.
+> **Key Finding:** Reward structure is the primary driver of DQN agent behaviour. Symmetric rewards (+1/+1/-1/-1) achieve the best F1 score (93.1%) with only 8K false positives, while asymmetric (10:1) rewards achieve 98% recall but 94K false positives.
 
 ---
 
 ## Project Structure
 
 ```
-RL_agent_IDS/
-├── Python_code/                # Source code
-│   ├── data_preprocessing.py   # Dataset loading, cleaning, feature engineering
-│   ├── ids_env.py              # Custom Gymnasium environment for RL training
-│   ├── train_rl_agent.py       # DQN agent architecture & training loop
-│   ├── ml_baselines.py         # Random Forest & XGBoost training
-│   ├── evaluate_all_models.py  # Unified evaluation on untouched test set
-│   ├── run_full_evaluation.py  # Multi-scenario evaluation (standard + zero-day)
-│   ├── run_experiments.py      # Experiment runner
-│   ├── hyperparameters.py      # Centralised hyperparameter definitions
-│   └── dashboard.py            # Streamlit interactive dashboard
-├── results/                    # Evaluation outputs
-│   └── evaluation_results.json # Model performance metrics
-├── requirements.txt            # Python dependencies
-├── setup_env.sh                # One-command environment setup
+HONOURS_PROJECT/
+├── Python_code/                 # Source code
+│   ├── data_preprocessing.py    # Dataset loading, cleaning, feature mapping
+│   ├── ids_env.py               # Custom Gymnasium environment for RL training
+│   ├── train_rl_agent.py        # DQN agent architecture & training loop
+│   ├── train_ppo_agent.py       # PPO agent (Stable-Baselines3)
+│   ├── ml_baselines.py          # Random Forest & XGBoost training
+│   ├── run_dqn_experiments.py   # 8 DQN hyperparameter experiments
+│   ├── run_all_scenarios.py     # Master experiment runner (all 4 scenarios)
+│   ├── hyperparameters.py       # Hyperparameter reference documentation
+│   └── dashboard.py             # Streamlit interactive dashboard
+├── dashboard                    # Launch script (./dashboard)
+├── requirements.txt             # Python dependencies
+├── setup_env.sh                 # One-command environment setup
 └── README.md
 ```
 
@@ -113,7 +138,7 @@ RL_agent_IDS/
 
 - Python 3.10+
 - pip
-- (Optional) CUDA-capable GPU for faster DQN training
+- (Optional) CUDA-capable GPU for faster training
 
 ### Installation
 
@@ -134,14 +159,10 @@ pip install -r requirements.txt
 
 ### Dataset
 
-This project uses the **CIC-IDS2017** dataset. Download it from the [official source](https://www.unb.ca/cic/datasets/ids-2017.html) and place the CSV files in a `data/` directory:
+This project uses **CIC-IDS2017** and **CIC-IoT-2023** datasets:
 
-```
-data/
-├── Monday-WorkingHours.pcap_ISCX.csv
-├── Tuesday-WorkingHours.pcap_ISCX.csv
-└── Wednesday-workingHours.pcap_ISCX.csv
-```
+- [CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) — place CSVs in `data/`
+- [CIC-IoT-2023](https://www.unb.ca/cic/datasets/iotdataset-2023.html) — place CSVs in `data/CIC-IoT-2023/`
 
 ---
 
@@ -154,45 +175,48 @@ cd Python_code
 python data_preprocessing.py
 ```
 
-This generates scaled feature matrices and encoded labels in `processed_data/`.
-
-### 2. Train ML Baselines
+### 2. Run All Experiments
 
 ```bash
-python ml_baselines.py
+# Run all 4 scenarios
+python run_all_scenarios.py
+
+# Or run a specific scenario (1-4)
+python run_all_scenarios.py --scenario 1
 ```
 
-Trains Random Forest and XGBoost models, saves them to `models/`.
-
-### 3. Train DQN Agent
+### 3. Run DQN Hyperparameter Experiments
 
 ```bash
-# Standard training
-python train_rl_agent.py
-
-# Zero-day simulation (exclude DDoS from training)
-python train_rl_agent.py --exclude ddos "dos hulk" --output dqn_no_ddos.pth
+python run_dqn_experiments.py
 ```
 
-### 4. Evaluate All Models
+### 4. Launch Dashboard
 
 ```bash
-python run_full_evaluation.py
+# From project root
+./dashboard
+
+# Or run a scenario then open dashboard
+./dashboard --run 1
 ```
 
-Runs all models through standard and zero-day scenarios, outputs results to `results/`.
+---
 
-### 5. Interactive Dashboard
+## Dashboard
 
-```bash
-streamlit run dashboard.py
-```
+The Streamlit dashboard provides interactive visualisation:
+
+- **Scenario Pages** — metrics table, grouped bar charts, radar plots, confusion matrices
+- **DQN Experiments** — F1 vs FP trade-off analysis across all 8 experiments
+- **Model Filtering** — view specific model types via sidebar dropdown
+- **Live Reload** — refresh data after running new experiments
 
 ---
 
 ## Hyperparameters
 
-### DQN Agent
+### DQN Agent (Best Config — Exp 7)
 
 | Parameter | Value | Description |
 |:----------|:-----:|:------------|
@@ -202,8 +226,19 @@ streamlit run dashboard.py
 | Tau (τ) | 0.001 | Soft update coefficient |
 | Learning Rate | 5×10⁻⁴ | Adam optimiser learning rate |
 | Epsilon Decay | 0.999 | Exploration decay rate |
-| Episodes | 2,000 | Training episodes |
+| Episodes | 5,000 | Training episodes |
 | Network | 78→64→64→2 | Fully connected layers |
+| Rewards | +1/+1/-1/-1 | Symmetric (TP/TN/FN/FP) |
+
+### PPO Agent
+
+| Parameter | Value | Description |
+|:----------|:-----:|:------------|
+| Timesteps | 1,000,000 | Total training steps |
+| Learning Rate | 3×10⁻⁴ | Adam optimiser |
+| Clip Range | 0.2 | PPO clipping parameter |
+| GAE Lambda | 0.95 | Advantage estimation |
+| Entropy Coef | 0.01 | Exploration encouragement |
 
 ### ML Baselines
 
@@ -215,27 +250,16 @@ streamlit run dashboard.py
 
 ---
 
-## Reward Structure
-
-The DQN agent uses an **asymmetric reward function** designed for security-critical applications:
-
-| Prediction | Ground Truth | Reward | Rationale |
-|:-----------|:------------|:------:|:----------|
-| Block (1) | Malicious (1) | **+10** | True Positive — correctly detected attack |
-| Allow (0) | Benign (0) | **+1** | True Negative — correct classification |
-| Allow (0) | Malicious (1) | **-10** | False Negative — missed attack (dangerous) |
-| Block (1) | Benign (0) | **-1** | False Positive — false alarm (acceptable) |
-
----
-
 ## Tech Stack
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?logo=pytorch&logoColor=white)
+![Stable-Baselines3](https://img.shields.io/badge/Stable--Baselines3-2.0+-blue)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikit-learn&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-006600)
 ![Gymnasium](https://img.shields.io/badge/Gymnasium-0.29+-0081A5)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-FF4B4B?logo=streamlit&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-5.0+-3F4F75?logo=plotly&logoColor=white)
 
 ---
 

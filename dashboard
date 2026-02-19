@@ -1,0 +1,57 @@
+#!/bin/bash
+# ============================================================================
+# 🛡️  RL-Enhanced IDS Dashboard
+# ============================================================================
+# Launch the Streamlit web dashboard
+#
+# Usage:
+#   ./dashboard              Launch the dashboard
+#   ./dashboard --help       Show help
+#   ./dashboard --run N      Run scenario N (1-4) then open dashboard
+# ============================================================================
+
+PROJECT_DIR="/home/abishik/HONOURS_PROJECT"
+VENV_DIR="$PROJECT_DIR/venv"
+DASHBOARD="$PROJECT_DIR/Python_code/dashboard.py"
+
+# Activate virtual environment
+source "$VENV_DIR/bin/activate"
+
+# Handle arguments
+case "${1:-}" in
+    --help|-h)
+        echo ""
+        echo "  🛡️  RL-Enhanced IDS Dashboard"
+        echo "  ════════════════════════════════════════"
+        echo ""
+        echo "  Usage:"
+        echo "    ./dashboard              Launch dashboard in browser"
+        echo "    ./dashboard --help       Show this help"
+        echo "    ./dashboard --run N      Run scenario N first, then open dashboard"
+        echo ""
+        echo "  Sidebar Controls:"
+        echo "    Navigate          Switch between scenarios, experiments & guide"
+        echo "    Model Filter      View specific model types"
+        echo "    Reload Data       Refresh after running new experiments"
+        echo ""
+        exit 0
+        ;;
+    --run|-r)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify scenario number (1-4)"
+            echo "Usage: ./dashboard --run 2"
+            exit 1
+        fi
+        echo "Running Scenario $2..."
+        python "$PROJECT_DIR/Python_code/run_all_scenarios.py" --scenario "$2"
+        echo ""
+        echo "Opening dashboard..."
+        ;;
+esac
+
+# Launch Streamlit
+echo "🛡️  Starting RL-Enhanced IDS Dashboard..."
+echo "   Dashboard will open in your browser automatically."
+echo "   Press Ctrl+C to stop."
+echo ""
+streamlit run "$DASHBOARD" --server.headless true

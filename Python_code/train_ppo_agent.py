@@ -38,7 +38,8 @@ class TrainingCallback(BaseCallback):
         return True
 
 
-def train_ppo(exclude_labels=None, total_timesteps=100000, model_name='ppo_agent'):
+def train_ppo(exclude_labels=None, total_timesteps=100000, model_name='ppo_agent',
+              reward_config=None):
     """
     Train PPO agent for Intrusion Detection.
     
@@ -46,6 +47,7 @@ def train_ppo(exclude_labels=None, total_timesteps=100000, model_name='ppo_agent
         exclude_labels: List of attack labels to exclude (for zero-day simulation).
         total_timesteps: Total training timesteps.
         model_name: Output model filename (without extension).
+        reward_config: Dict with 'tp', 'tn', 'fn', 'fp' reward values.
     
     Returns:
         Trained PPO model.
@@ -54,6 +56,7 @@ def train_ppo(exclude_labels=None, total_timesteps=100000, model_name='ppo_agent
     print(f"Training PPO Agent (Stable-Baselines3)")
     print(f"Excluded labels: {exclude_labels or 'None'}")
     print(f"Total timesteps: {total_timesteps}")
+    print(f"Rewards: {reward_config or 'default (10:1)'}")
     print(f"Hyperparameters:")
     print(f"  Learning Rate: {LEARNING_RATE}")
     print(f"  N Steps: {N_STEPS}")
@@ -63,9 +66,9 @@ def train_ppo(exclude_labels=None, total_timesteps=100000, model_name='ppo_agent
     print(f"  Clip Range: {CLIP_RANGE}")
     print(f"{'='*60}\n")
     
-    # Create environment
+    # Create environment with optional reward config
     def make_env():
-        return IdsEnv(exclude_labels=exclude_labels)
+        return IdsEnv(exclude_labels=exclude_labels, reward_config=reward_config)
     
     env = DummyVecEnv([make_env])
     

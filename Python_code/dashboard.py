@@ -1,383 +1,605 @@
-# IDS Dashboard - Live Training and Evaluation Interface
-# Streamlit app for RL agent training, tuning, and comparison
-#
-# Purpose: Proof of concept dashboard for RL-Enhanced IDS
-# - Real-time training visualization
-# - Hyperparameter tuning controls
-# - Model comparison (RL vs ML)
-# - Simulated traffic classification
+#!/usr/bin/env python3
+"""
+RL-Enhanced IDS Dashboard — Streamlit Web Application
+Interactive dashboard for viewing experiment results, comparing models,
+and understanding RL agent performance for intrusion detection.
 
-import streamlit as st
-import pandas as pd
+Usage:
+    streamlit run dashboard.py
+    or: ./dashboard
+"""
+
+import os
+import json
 import numpy as np
-import plotly.express as px
+import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import os
-import time
-import threading
-import queue
-from datetime import datetime
-import joblib
+import streamlit as st
 
-# Configure page
-st.set_page_config(
-    page_title="RL-IDS Dashboard",
-    page_icon="shield",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# ============================================================================
+# CONFIG & DATA
+# ============================================================================
 
-# Custom CSS for dark theme
-st.markdown("""
-<style>
-    .stMetric {
-        background-color: #1e1e1e;
-        padding: 15px;
-        border-radius: 10px;
-    }
-    .big-font {
-        font-size: 24px !important;
-        font-weight: bold;
-    }
-</style>
-""", unsafe_allow_html=True)
+PROJECT_DIR = '/home/abishik/HONOURS_PROJECT'
+RESULTS_FILE = os.path.join(PROJECT_DIR, 'results', 'all_scenarios_results.json')
+DQN_EXPERIMENTS_FILE = os.path.join(PROJECT_DIR, 'results', 'dqn_experiments.json')
 
-# ============== STATE MANAGEMENT ==============
-if 'training_active' not in st.session_state:
-    st.session_state.training_active = False
-if 'training_data' not in st.session_state:
-    st.session_state.training_data = {'episodes': [], 'rewards': [], 'losses': []}
-if 'live_metrics' not in st.session_state:
-    st.session_state.live_metrics = {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1': 0}
+SCENARIO_INFO = {
+    'scenario_1': {
+        'title': '📊 Scenario 1: Standard Classification',
+        'desc': 'All models trained & tested on CIC-IDS2017 (78 features)',
+        'short': 'Standard',
+    },
+    'scenario_2': {
+        'title': '🛡️ Scenario 2: Zero-Day DDoS',
+        'desc': 'RL trained WITHOUT DDoS → tested on DDoS-only data',
+        'short': 'Zero-Day DDoS',
+    },
+    'scenario_3': {
+        'title': '🌐 Scenario 3: Zero-Day Web Attacks',
+        'desc': 'RL trained WITHOUT web attacks → tested on web-only data',
+        'short': 'Zero-Day Web',
+    },
+    'scenario_4': {
+        'title': '🔄 Scenario 4: Cross-Dataset (2017→2023)',
+        'desc': 'Trained on CIC-IDS2017, tested on CIC-IoT-2023 (12 features)',
+        'short': 'Cross-Dataset',
+    },
+}
+
+MODEL_COLORS = {
+    'Random Forest': '#2ecc71',
+    'XGBoost': '#3498db',
+    'DQN': '#f39c12',
+    'DQN (Standard)': '#f39c12',
+    'DQN (No DDoS)': '#e67e22',
+    'DQN (No Web)': '#e67e22',
+    'PPO': '#9b59b6',
+    'PPO (Standard)': '#9b59b6',
+    'PPO (No DDoS)': '#e74c3c',
+    'PPO (No Web)': '#e74c3c',
+}
+
+FILTER_CYCLE = ['All', 'Random Forest', 'XGBoost', 'DQN', 'PPO']
 
 
-# ============== SIDEBAR: AGENT CONTROLS ==============
-st.sidebar.title("Agent Controls")
+@st.cache_data(ttl=30)
+def load_results():
+    if os.path.exists(RESULTS_FILE):
+        with open(RESULTS_FILE) as f:
+            return json.load(f)
+    return {}
 
-algorithm = st.sidebar.selectbox(
-    "Select Algorithm",
-    ["DQN", "PPO"],
-    help="DQN: Value-based RL, PPO: Policy-based RL"
-)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("Hyperparameters")
+@st.cache_data(ttl=30)
+def load_dqn_experiments():
+    if os.path.exists(DQN_EXPERIMENTS_FILE):
+        with open(DQN_EXPERIMENTS_FILE) as f:
+            return json.load(f)
+    return {}
 
-# ============== DQN HYPERPARAMETERS ==============
-# Note: These are tunable parameters for the DQN agent
-# Default values are based on research best practices
-# If training fails or converges slowly, adjust these:
-#   - Learning rate: Lower if unstable (0.0001), higher if slow (0.001)
-#   - Epsilon decay: Slower decay if exploring too little
-#   - Buffer size: Larger prevents forgetting, smaller trains faster
 
-if algorithm == "DQN":
-    learning_rate = st.sidebar.slider(
-        "Learning Rate",
-        min_value=0.0001, max_value=0.01, value=0.0005, step=0.0001,
-        format="%.4f",
-        help="Default: 0.0005. Lower if training is unstable."
+# ============================================================================
+# CHART BUILDERS
+# ============================================================================
+
+def build_metrics_comparison_chart(data, metrics=None):
+    """Grouped bar chart comparing models across metrics."""
+    if not data:
+        return None
+    if metrics is None:
+        metrics = ['Accuracy', 'Precision', 'Recall', 'F1']
+
+    fig = go.Figure()
+    for metric in metrics:
+        names = list(data.keys())
+        values = [data[n].get(metric, 0) for n in names]
+        colors = [MODEL_COLORS.get(n, '#95a5a6') for n in names]
+        fig.add_trace(go.Bar(
+            name=metric,
+            x=names,
+            y=values,
+            text=[f'{v:.1f}%' for v in values],
+            textposition='outside',
+        ))
+
+    fig.update_layout(
+        barmode='group',
+        yaxis_title='Score (%)',
+        yaxis_range=[0, 105],
+        template='plotly_dark',
+        height=400,
+        margin=dict(t=30, b=40),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        font=dict(size=13),
     )
-    epsilon_start = st.sidebar.slider(
-        "Epsilon Start (Exploration)",
-        min_value=0.1, max_value=1.0, value=1.0, step=0.1,
-        help="Start with full exploration (1.0)"
+    return fig
+
+
+def build_radar_chart(data):
+    """Radar chart for multi-dimensional comparison."""
+    if not data:
+        return None
+
+    categories = ['Accuracy', 'Precision', 'Recall', 'F1']
+    fig = go.Figure()
+
+    for name, m in data.items():
+        values = [m.get(c, 0) for c in categories]
+        values.append(values[0])  # close the polygon
+        fig.add_trace(go.Scatterpolar(
+            r=values,
+            theta=categories + [categories[0]],
+            fill='toself',
+            name=name,
+            line=dict(color=MODEL_COLORS.get(name, '#95a5a6')),
+            opacity=0.7,
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, 100]),
+            bgcolor='rgba(0,0,0,0)',
+        ),
+        template='plotly_dark',
+        height=400,
+        margin=dict(t=30, b=30),
+        font=dict(size=13),
     )
-    epsilon_end = st.sidebar.slider(
-        "Epsilon End",
-        min_value=0.01, max_value=0.2, value=0.05, step=0.01,
-        help="Maintain some exploration (0.05)"
+    return fig
+
+
+def build_confusion_matrix_chart(metrics, model_name):
+    """Heatmap confusion matrix."""
+    cm = np.array(metrics.get('ConfusionMatrix', [[0, 0], [0, 0]]))
+    labels = ['Benign (Allow)', 'Attack (Block)']
+
+    # Normalised for colour, raw for text
+    cm_norm = cm.astype(float) / cm.sum() * 100
+
+    text = [[f'{cm[i][j]:,}<br>({cm_norm[i][j]:.1f}%)' for j in range(2)] for i in range(2)]
+
+    fig = go.Figure(data=go.Heatmap(
+        z=cm_norm,
+        x=['Predicted Allow', 'Predicted Block'],
+        y=['Actual Benign', 'Actual Attack'],
+        text=text,
+        texttemplate='%{text}',
+        colorscale=[[0, '#1a1a2e'], [0.5, '#16213e'], [1, '#e94560']],
+        showscale=False,
+        hovertemplate='%{y} → %{x}<br>Count: %{text}<extra></extra>',
+    ))
+
+    fig.update_layout(
+        title=dict(text=f'{model_name} — Confusion Matrix', font=dict(size=14)),
+        template='plotly_dark',
+        height=300,
+        margin=dict(t=40, b=20, l=20, r=20),
+        font=dict(size=13),
+        yaxis=dict(autorange='reversed'),
     )
-    epsilon_decay = st.sidebar.slider(
-        "Epsilon Decay",
-        min_value=0.99, max_value=0.9999, value=0.999, step=0.001,
-        format="%.4f",
-        help="Slow decay for better exploration"
+    return fig
+
+
+def build_roc_auc_bar(data):
+    """Bar chart for ROC-AUC scores."""
+    models = []
+    scores = []
+    colors = []
+    for name, m in data.items():
+        auc = m.get('ROC_AUC')
+        if auc is not None:
+            models.append(name)
+            scores.append(auc)
+            colors.append(MODEL_COLORS.get(name, '#95a5a6'))
+
+    if not models:
+        return None
+
+    fig = go.Figure(go.Bar(
+        x=models, y=scores,
+        marker_color=colors,
+        text=[f'{s:.1f}%' for s in scores],
+        textposition='outside',
+    ))
+    fig.update_layout(
+        yaxis_title='ROC-AUC (%)',
+        yaxis_range=[0, 105],
+        template='plotly_dark',
+        height=300,
+        margin=dict(t=20, b=30),
+        font=dict(size=13),
     )
-    buffer_size = st.sidebar.select_slider(
-        "Replay Buffer Size",
-        options=[10000, 50000, 100000],
-        value=100000,
-        help="Larger buffer prevents catastrophic forgetting"
+    return fig
+
+
+def build_latency_chart(data):
+    """Horizontal bar chart for inference latency."""
+    models = []
+    latencies = []
+    throughputs = []
+    colors = []
+    for name, m in data.items():
+        lat = m.get('Latency_us')
+        thr = m.get('Throughput')
+        if lat is not None:
+            models.append(name)
+            latencies.append(lat)
+            throughputs.append(thr or 0)
+            colors.append(MODEL_COLORS.get(name, '#95a5a6'))
+
+    if not models:
+        return None
+
+    fig = make_subplots(rows=1, cols=2, subplot_titles=('Latency (μs/sample)', 'Throughput (samples/sec)'))
+
+    fig.add_trace(go.Bar(
+        y=models, x=latencies, orientation='h',
+        marker_color=colors,
+        text=[f'{l:.1f}μs' for l in latencies],
+        textposition='outside',
+        showlegend=False,
+    ), row=1, col=1)
+
+    fig.add_trace(go.Bar(
+        y=models, x=throughputs, orientation='h',
+        marker_color=colors,
+        text=[f'{t:,.0f}/s' for t in throughputs],
+        textposition='outside',
+        showlegend=False,
+    ), row=1, col=2)
+
+    fig.update_layout(
+        template='plotly_dark',
+        height=250,
+        margin=dict(t=40, b=20),
+        font=dict(size=12),
     )
-    batch_size = st.sidebar.select_slider(
-        "Batch Size",
-        options=[32, 64, 128],
-        value=64,
-        help="Smaller batch for less bias to recent experiences"
-    )
-    
-# ============== PPO HYPERPARAMETERS ==============
-# Note: PPO is generally more stable than DQN
-# Key parameters to tune:
-#   - Clip range: Prevents too large policy updates
-#   - Entropy coefficient: Higher = more exploration
-
-else:  # PPO
-    learning_rate = st.sidebar.slider(
-        "Learning Rate",
-        min_value=0.0001, max_value=0.001, value=0.0003, step=0.0001,
-        format="%.4f",
-        help="Default: 0.0003. PPO is less sensitive to this."
-    )
-    clip_range = st.sidebar.slider(
-        "Clip Range",
-        min_value=0.1, max_value=0.4, value=0.2, step=0.05,
-        help="Prevents too large policy updates. Default: 0.2"
-    )
-    n_epochs = st.sidebar.slider(
-        "Optimization Epochs",
-        min_value=1, max_value=20, value=10,
-        help="Epochs per batch update. Default: 10"
-    )
-    entropy_coef = st.sidebar.slider(
-        "Entropy Coefficient",
-        min_value=0.0, max_value=0.1, value=0.01, step=0.005,
-        format="%.3f",
-        help="Higher = more exploration. Default: 0.01"
-    )
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("Reward Weights")
-st.sidebar.caption("Asymmetric rewards for security-first approach")
-
-# ============== REWARD STRUCTURE ==============
-# Note: Security-first approach prioritizes catching attacks
-# True Positive reward > True Negative (catching attacks is critical)
-# False Negative penalty > False Positive (missing attacks is worse)
-
-reward_tp = st.sidebar.slider(
-    "True Positive (Catch Attack)",
-    min_value=1, max_value=20, value=10,
-    help="Reward for correctly blocking malicious traffic"
-)
-reward_tn = st.sidebar.slider(
-    "True Negative (Allow Benign)",
-    min_value=1, max_value=5, value=1,
-    help="Reward for correctly allowing benign traffic"
-)
-penalty_fn = st.sidebar.slider(
-    "False Negative (Miss Attack)",
-    min_value=-20, max_value=-1, value=-10,
-    help="Penalty for missing malicious traffic (critical!)"
-)
-penalty_fp = st.sidebar.slider(
-    "False Positive (Block Benign)",
-    min_value=-5, max_value=-1, value=-1,
-    help="Penalty for blocking benign traffic (alert fatigue)"
-)
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("Training Settings")
-
-n_episodes = st.sidebar.number_input(
-    "Number of Episodes",
-    min_value=100, max_value=10000, value=2000, step=100
-)
-
-# Training controls
-col1, col2 = st.sidebar.columns(2)
-start_btn = col1.button("Start", use_container_width=True)
-stop_btn = col2.button("Stop", use_container_width=True)
+    return fig
 
 
-# ============== MAIN CONTENT ==============
-st.title("RL-Enhanced Intrusion Detection System")
-st.markdown("**Proof of Concept Dashboard for Autonomous Network Defence**")
+def build_dqn_experiment_chart(experiments):
+    """Chart showing F1 vs FP trade-off across experiments."""
+    if not experiments:
+        return None
 
-# Top metrics row
-st.subheader("Live Performance Metrics")
-metric_cols = st.columns(4)
+    names = []
+    f1_scores = []
+    fp_counts = []
+    precisions = []
 
-with metric_cols[0]:
-    st.metric(
-        label="Accuracy",
-        value=f"{st.session_state.live_metrics['accuracy']:.2%}",
-        delta="0.5%"
-    )
-with metric_cols[1]:
-    st.metric(
-        label="Precision",
-        value=f"{st.session_state.live_metrics['precision']:.2%}",
-        delta="0.3%"
-    )
-with metric_cols[2]:
-    st.metric(
-        label="Recall",
-        value=f"{st.session_state.live_metrics['recall']:.2%}",
-        delta="0.8%"
-    )
-with metric_cols[3]:
-    st.metric(
-        label="F1 Score",
-        value=f"{st.session_state.live_metrics['f1']:.2%}",
-        delta="0.4%"
+    for key, exp in experiments.items():
+        r = exp.get('results', {})
+        names.append(exp.get('name', key).replace('Exp ', ''))
+        f1_scores.append(r.get('F1', 0))
+        fp_counts.append(r.get('FP', 0))
+        precisions.append(r.get('Precision', 0))
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=('F1 Score by Experiment', 'False Positives by Experiment'),
     )
 
-st.markdown("---")
+    # F1 bars
+    colors = ['#2ecc71' if f > 92 else ('#f39c12' if f > 85 else '#e74c3c') for f in f1_scores]
+    fig.add_trace(go.Bar(
+        x=names, y=f1_scores,
+        marker_color=colors,
+        text=[f'{f:.1f}%' for f in f1_scores],
+        textposition='outside',
+        showlegend=False,
+    ), row=1, col=1)
 
-# Charts row
-chart_cols = st.columns(2)
+    # FP bars
+    fp_colors = ['#2ecc71' if fp < 10000 else ('#f39c12' if fp < 50000 else '#e74c3c') for fp in fp_counts]
+    fig.add_trace(go.Bar(
+        x=names, y=fp_counts,
+        marker_color=fp_colors,
+        text=[f'{fp:,}' for fp in fp_counts],
+        textposition='outside',
+        showlegend=False,
+    ), row=1, col=2)
 
-with chart_cols[0]:
-    st.subheader("Training Progress")
-    
-    # Sample training data for demonstration
-    if len(st.session_state.training_data['episodes']) == 0:
-        # Demo data
-        demo_episodes = list(range(1, 101))
-        demo_rewards = [50 + i * 0.5 + np.random.randn() * 10 for i in range(100)]
-    else:
-        demo_episodes = st.session_state.training_data['episodes']
-        demo_rewards = st.session_state.training_data['rewards']
-    
-    fig_training = px.line(
-        x=demo_episodes,
-        y=demo_rewards,
-        labels={'x': 'Episode', 'y': 'Reward'},
-        title=f"{algorithm} Training Reward"
+    fig.update_layout(
+        template='plotly_dark',
+        height=350,
+        margin=dict(t=40, b=40),
+        font=dict(size=12),
     )
-    fig_training.update_layout(
-        template="plotly_dark",
-        height=300
+    fig.update_yaxes(title_text='F1 (%)', range=[0, 105], row=1, col=1)
+    fig.update_yaxes(title_text='False Positives', row=1, col=2)
+    return fig
+
+
+# ============================================================================
+# PAGE SECTIONS
+# ============================================================================
+
+def render_scenario_page(scenario_key, data, model_filter):
+    """Render a single scenario's results page."""
+    info = SCENARIO_INFO[scenario_key]
+    st.header(info['title'])
+    st.caption(info['desc'])
+
+    if not data:
+        st.warning(f'No results available. Run: `python run_all_scenarios.py --scenario {scenario_key[-1]}`')
+        return
+
+    # Apply filter
+    if model_filter != 'All':
+        data = {k: v for k, v in data.items() if model_filter.lower() in k.lower()}
+        if not data:
+            st.info(f'No results for filter "{model_filter}" in this scenario.')
+            return
+
+    # Metrics table
+    df = pd.DataFrame(data).T
+    metric_cols = ['Accuracy', 'Precision', 'Recall', 'F1', 'ROC_AUC', 'Latency_us', 'Throughput']
+    display_cols = [c for c in metric_cols if c in df.columns]
+    st.dataframe(
+        df[display_cols].style.format('{:.2f}', subset=[c for c in display_cols if c != 'Throughput'])
+        .format('{:,.0f}', subset=['Throughput'] if 'Throughput' in display_cols else [])
+        .highlight_max(axis=0, props='background-color: #2ecc71; color: white', subset=['F1'] if 'F1' in display_cols else []),
+        use_container_width=True,
     )
-    st.plotly_chart(fig_training, use_container_width=True)
 
-with chart_cols[1]:
-    st.subheader("Confusion Matrix")
-    
-    # Sample confusion matrix
-    cm_data = np.array([[8500, 1500], [50, 9950]])  # TN, FP, FN, TP
-    
-    fig_cm = px.imshow(
-        cm_data,
-        labels=dict(x="Predicted", y="Actual", color="Count"),
-        x=['Benign', 'Malicious'],
-        y=['Benign', 'Malicious'],
-        text_auto=True,
-        color_continuous_scale='Blues'
+    # Charts
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader('Performance Comparison')
+        fig = build_metrics_comparison_chart(data)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.subheader('Radar View')
+        fig = build_radar_chart(data)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ROC-AUC and Latency
+    has_auc = any(m.get('ROC_AUC') for m in data.values())
+    has_lat = any(m.get('Latency_us') for m in data.values())
+
+    if has_auc or has_lat:
+        col3, col4 = st.columns(2)
+        if has_auc:
+            with col3:
+                st.subheader('ROC-AUC')
+                fig = build_roc_auc_bar(data)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
+        if has_lat:
+            with col4:
+                st.subheader('Inference Speed')
+                fig = build_latency_chart(data)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
+
+    # Confusion matrices
+    st.subheader('Confusion Matrices')
+    cm_cols = st.columns(min(len(data), 4))
+    for i, (name, m) in enumerate(data.items()):
+        with cm_cols[i % len(cm_cols)]:
+            fig = build_confusion_matrix_chart(m, name)
+            st.plotly_chart(fig, use_container_width=True)
+
+
+def render_dqn_experiments_page(experiments):
+    """Render the DQN hyperparameter experiments page."""
+    st.header('🧪 DQN Hyperparameter Experiments')
+    st.caption('8 systematic experiments tuning reward structure, architecture & training duration')
+
+    if not experiments:
+        st.warning('No DQN experiment results found.')
+        return
+
+    # Build table
+    rows = []
+    for key, exp in experiments.items():
+        r = exp.get('results', {})
+        rw = exp.get('rewards', {})
+        rows.append({
+            'Experiment': exp.get('name', key),
+            'Rewards (TP/TN/FN/FP)': f"+{rw.get('tp',0)}/+{rw.get('tn',0)}/{rw.get('fn',0)}/{rw.get('fp',0)}",
+            'Network': exp.get('network', '64-64'),
+            'Episodes': exp.get('episodes', 2000),
+            'LR': exp.get('learning_rate', 0.0005),
+            'Accuracy': r.get('Accuracy', 0),
+            'Precision': r.get('Precision', 0),
+            'Recall': r.get('Recall', 0),
+            'F1': r.get('F1', 0),
+            'FP': r.get('FP', 0),
+            'FN': r.get('FN', 0),
+        })
+
+    df = pd.DataFrame(rows)
+    st.dataframe(
+        df.style
+        .highlight_max(axis=0, props='background-color: #2ecc71; color: white', subset=['F1', 'Precision'])
+        .highlight_min(axis=0, props='background-color: #2ecc71; color: white', subset=['FP'])
+        .format({'Accuracy': '{:.1f}%', 'Precision': '{:.1f}%', 'Recall': '{:.1f}%', 'F1': '{:.1f}%', 'FP': '{:,}', 'FN': '{:,}', 'LR': '{:.4f}'}),
+        use_container_width=True,
+        hide_index=True,
     )
-    fig_cm.update_layout(
-        template="plotly_dark",
-        height=300
+
+    # Chart
+    fig = build_dqn_experiment_chart(experiments)
+    if fig:
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Key findings
+    best = max(experiments.values(), key=lambda e: e.get('results', {}).get('F1', 0))
+    best_r = best.get('results', {})
+
+    st.success(f"**Best: {best.get('name')}** — F1={best_r.get('F1',0):.1f}%, Precision={best_r.get('Precision',0):.1f}%, FP={best_r.get('FP',0):,}")
+
+    with st.expander('💡 Key Insights', expanded=True):
+        st.markdown("""
+        - **Reward structure is the primary driver** of agent behaviour
+        - **Asymmetric (10:1)** rewards → 98% recall but 94K false positives (alert fatigue)
+        - **Symmetric (+1/+1/-1/-1)** → 93% F1 with only 8K FP (balanced for real-world use)
+        - **Larger network (128-128)** did not improve performance — 64-64 is sufficient
+        - **More episodes (5K vs 2K)** gave the best result — DQN benefits from longer training
+        """)
+
+
+def render_guide_page():
+    """Render the user guide page."""
+    st.header('📖 Dashboard Guide')
+
+    st.markdown("""
+    ### How to Use This Dashboard
+
+    **Sidebar Controls:**
+    - **Page selector** — Switch between scenarios, experiments, and this guide
+    - **Model filter** — View specific model types (RF, XGBoost, DQN, PPO)
+    - **Reload** — Refresh data after running new experiments
+
+    ---
+
+    ### What Each Scenario Tests
+
+    | Scenario | Purpose | Key Question |
+    |----------|---------|--------------|
+    | **1. Standard** | Baseline comparison on CIC-IDS2017 | How does RL compare to ML? |
+    | **2. Zero-Day DDoS** | RL trained without DDoS | Can RL detect unseen attack types? |
+    | **3. Zero-Day Web** | RL trained without web attacks | Generalisation to app-layer threats? |
+    | **4. Cross-Dataset** | Train 2017 → Test 2023 | Do patterns transfer across networks? |
+
+    ---
+
+    ### Understanding the Metrics
+
+    | Metric | What It Measures | Why It Matters |
+    |--------|-----------------|----------------|
+    | **Accuracy** | Overall correct rate | Can be misleading with imbalanced data |
+    | **Precision** | Of "attack" predictions, % correct | High = fewer false alarms |
+    | **Recall** | Of actual attacks, % detected | High = fewer missed attacks |
+    | **F1** | Balance of precision & recall | Best single metric for comparison |
+    | **ROC-AUC** | Discrimination ability | Higher = better at separating classes |
+    | **Latency** | μs per sample | Real-time capability |
+    | **Throughput** | Samples/second | Network capacity |
+
+    ---
+
+    ### Confusion Matrix Key
+
+    |  | Predicted Allow | Predicted Block |
+    |--|----------------|-----------------|
+    | **Actually Benign** | ✅ TN (correct) | ⚠️ FP (false alarm) |
+    | **Actually Attack** | 🚨 FN (missed!) | ✅ TP (caught!) |
+
+    - **FN is most dangerous** — missed attacks
+    - **FP causes alert fatigue** — too many false alarms
+
+    ---
+
+    ### Running Experiments
+
+    ```bash
+    source ~/HONOURS_PROJECT/venv/bin/activate
+
+    # Run individual scenarios
+    python run_all_scenarios.py --scenario 1
+    python run_all_scenarios.py --scenario 2
+    python run_all_scenarios.py --scenario 3
+    python run_all_scenarios.py --scenario 4
+
+    # Or: run a scenario and then open dashboard
+    ./dashboard --run 1
+    ```
+
+    After training completes, click **🔄 Reload Data** in the sidebar.
+    """)
+
+
+# ============================================================================
+# MAIN APP
+# ============================================================================
+
+def main():
+    st.set_page_config(
+        page_title='RL-Enhanced IDS Dashboard',
+        page_icon='🛡️',
+        layout='wide',
+        initial_sidebar_state='expanded',
     )
-    st.plotly_chart(fig_cm, use_container_width=True)
 
-st.markdown("---")
+    # Custom CSS for dark premium look
+    st.markdown("""
+    <style>
+        /* Dark theme enhancements */
+        .stApp { background-color: #0e1117; }
+        .stMetricValue { font-size: 1.4rem !important; }
+        div[data-testid="stMetricDelta"] { font-size: 0.9rem; }
 
-# Model comparison section
-st.subheader("Model Comparison: RL vs ML")
-st.caption("Comparing RL agents against traditional ML baselines")
+        /* Sidebar styling */
+        section[data-testid="stSidebar"] {
+            background-color: #161b22;
+            border-right: 1px solid #30363d;
+        }
 
-# Sample comparison data
-comparison_data = pd.DataFrame({
-    'Model': ['Random Forest', 'XGBoost', 'DQN', 'PPO'],
-    'Type': ['ML', 'ML', 'RL', 'RL'],
-    'Accuracy': [0.9985, 0.9991, 0.7462, 0.8234],
-    'Precision': [0.9987, 0.9993, 0.5012, 0.6521],
-    'Recall': [0.9978, 0.9985, 1.0000, 0.9850],
-    'F1 Score': [0.9982, 0.9989, 0.6680, 0.7845],
-    'FP Rate': [0.001, 0.0007, 0.2538, 0.1523]
-})
+        /* Smooth transitions */
+        .stPlotlyChart { transition: all 0.3s ease; }
+        .stPlotlyChart:hover { transform: scale(1.01); }
 
-# Highlight: RL achieves 100% recall (catches all attacks)
-st.info("Note: RL agents achieve near-perfect recall (100%) at the cost of higher false positives. "
-        "This security-first approach ensures no attacks are missed.")
+        /* Header gradient */
+        h1 { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+             font-weight: 800 !important; }
 
-# Color-code by type
-fig_comparison = px.bar(
-    comparison_data,
-    x='Model',
-    y=['Accuracy', 'Recall', 'F1 Score'],
-    barmode='group',
-    color_discrete_sequence=['#2ecc71', '#3498db', '#9b59b6'],
-    title="Algorithm Performance Comparison"
-)
-fig_comparison.update_layout(
-    template="plotly_dark",
-    height=350
-)
-st.plotly_chart(fig_comparison, use_container_width=True)
+        h2, h3 { color: #c9d1d9 !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Comparison table
-st.dataframe(
-    comparison_data.style.format({
-        'Accuracy': '{:.2%}',
-        'Precision': '{:.2%}',
-        'Recall': '{:.2%}',
-        'F1 Score': '{:.2%}',
-        'FP Rate': '{:.2%}'
-    }).background_gradient(subset=['Recall'], cmap='Greens'),
-    use_container_width=True
-)
+    # Load data
+    results = load_results()
+    dqn_experiments = load_dqn_experiments()
 
-st.markdown("---")
+    # Sidebar
+    with st.sidebar:
+        st.title('🛡️ RL-Enhanced IDS')
+        st.caption('Autonomous Network Defence')
+        st.divider()
 
-# Live traffic simulation section
-st.subheader("Simulated Traffic Classification")
-st.caption("Dataset records streamed as simulated network traffic")
+        # Page selector
+        pages = ['📊 Scenario 1', '🛡️ Scenario 2', '🌐 Scenario 3', '🔄 Scenario 4',
+                 '🧪 DQN Experiments', '📖 Guide']
+        page = st.radio('Navigate', pages, label_visibility='collapsed')
 
-# Traffic feed placeholder
-traffic_placeholder = st.empty()
+        st.divider()
 
-with traffic_placeholder.container():
-    traffic_cols = st.columns([1, 2, 1, 1])
-    
-    with traffic_cols[0]:
-        st.markdown("**Timestamp**")
-        st.text(datetime.now().strftime("%H:%M:%S"))
-    
-    with traffic_cols[1]:
-        st.markdown("**Traffic Sample**")
-        st.code("SYN->ACK flow | 192.168.1.x -> 10.0.0.x | 1.2KB", language=None)
-    
-    with traffic_cols[2]:
-        st.markdown("**Prediction**")
-        st.success("BENIGN")
-    
-    with traffic_cols[3]:
-        st.markdown("**Confidence**")
-        st.progress(0.95)
-        st.caption("95%")
+        # Model filter
+        model_filter = st.selectbox('Model Filter', FILTER_CYCLE, index=0)
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: gray;'>
-    <p>RL-Enhanced IDS Dashboard | Honours Project 2024-25</p>
-    <p>Abishik Macherla Vijayakrishna</p>
-</div>
-""", unsafe_allow_html=True)
+        st.divider()
+
+        # Reload button
+        if st.button('🔄 Reload Data', use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+        # Status
+        n_scenarios = len(results)
+        n_models = sum(len(v) for v in results.values())
+        st.caption(f'📁 {n_scenarios} scenarios, {n_models} model results')
+
+    # Route to page
+    if page == '📊 Scenario 1':
+        render_scenario_page('scenario_1', results.get('scenario_1', {}), model_filter)
+    elif page == '🛡️ Scenario 2':
+        render_scenario_page('scenario_2', results.get('scenario_2', {}), model_filter)
+    elif page == '🌐 Scenario 3':
+        render_scenario_page('scenario_3', results.get('scenario_3', {}), model_filter)
+    elif page == '🔄 Scenario 4':
+        render_scenario_page('scenario_4', results.get('scenario_4', {}), model_filter)
+    elif page == '🧪 DQN Experiments':
+        render_dqn_experiments_page(dqn_experiments)
+    elif page == '📖 Guide':
+        render_guide_page()
 
 
-# ============== PARAMETER REFERENCE ==============
-# This section documents all tunable parameters for easy reference
-# Use these as starting points and adjust based on training results
-#
-# DQN Parameters:
-#   BUFFER_SIZE = 100000    # Experience replay buffer
-#   BATCH_SIZE = 64         # Training batch size
-#   GAMMA = 0.99            # Discount factor
-#   TAU = 0.001             # Soft update coefficient
-#   LR = 0.0005             # Learning rate
-#   UPDATE_EVERY = 4        # Steps between network updates
-#   EPS_START = 1.0         # Initial exploration
-#   EPS_END = 0.05          # Final exploration
-#   EPS_DECAY = 0.999       # Exploration decay rate
-#
-# PPO Parameters:
-#   LEARNING_RATE = 0.0003  # Adam optimizer learning rate
-#   N_STEPS = 2048          # Steps per update
-#   BATCH_SIZE = 64         # Minibatch size
-#   N_EPOCHS = 10           # Optimization epochs
-#   GAMMA = 0.99            # Discount factor
-#   GAE_LAMBDA = 0.95       # GAE lambda
-#   CLIP_RANGE = 0.2        # PPO clip parameter
-#   ENT_COEF = 0.01         # Entropy bonus
-#
-# Reward Structure:
-#   TP_REWARD = +10         # True Positive (catch attack)
-#   TN_REWARD = +1          # True Negative (allow benign)
-#   FN_PENALTY = -10        # False Negative (miss attack)
-#   FP_PENALTY = -1         # False Positive (block benign)
+if __name__ == '__main__':
+    main()

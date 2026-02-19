@@ -73,14 +73,14 @@ class ReplayBuffer:
 
 class Agent:
     """DQN Agent with experience replay and target network."""
-    def __init__(self, state_size, action_size, seed):
+    def __init__(self, state_size, action_size, seed, fc1_units=64, fc2_units=64, learning_rate=LR):
         self.state_size = state_size
         self.action_size = action_size
         random.seed(seed)
         
-        self.qnetwork_local = DQN(state_size, action_size, seed).to(device)
-        self.qnetwork_target = DQN(state_size, action_size, seed).to(device)
-        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        self.qnetwork_local = DQN(state_size, action_size, seed, fc1_units, fc2_units).to(device)
+        self.qnetwork_target = DQN(state_size, action_size, seed, fc1_units, fc2_units).to(device)
+        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=learning_rate)
         
         self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
         self.t_step = 0
@@ -125,7 +125,8 @@ class Agent:
 
 def train_dqn(exclude_labels=None, n_episodes=2000, max_t=1000, 
               eps_start=1.0, eps_end=0.01, eps_decay=0.999,
-              model_name='dqn_agent.pth'):
+              model_name='dqn_agent.pth', reward_config=None,
+              fc1_units=64, fc2_units=64, learning_rate=LR):
     """
     Train DQN agent.
     
@@ -134,13 +135,18 @@ def train_dqn(exclude_labels=None, n_episodes=2000, max_t=1000,
         n_episodes: Number of training episodes.
         max_t: Maximum steps per episode.
         model_name: Output model filename.
+        reward_config: Dict with 'tp', 'tn', 'fn', 'fp' reward values.
+        fc1_units: First hidden layer size.
+        fc2_units: Second hidden layer size.
+        learning_rate: Adam optimizer learning rate.
     """
-    # Initialize environment with optional label exclusion
-    env = IdsEnv(exclude_labels=exclude_labels)
+    # Initialize environment with optional label exclusion and reward config
+    env = IdsEnv(exclude_labels=exclude_labels, reward_config=reward_config)
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
     
-    agent = Agent(state_size=state_size, action_size=action_size, seed=42)
+    agent = Agent(state_size=state_size, action_size=action_size, seed=42,
+                  fc1_units=fc1_units, fc2_units=fc2_units, learning_rate=learning_rate)
     
     scores = []
     scores_window = deque(maxlen=100)
@@ -150,6 +156,8 @@ def train_dqn(exclude_labels=None, n_episodes=2000, max_t=1000,
     print(f"Training DQN Agent")
     print(f"Excluded labels: {exclude_labels or 'None'}")
     print(f"Episodes: {n_episodes}, Max steps: {max_t}")
+    print(f"Network: {fc1_units}-{fc2_units}, LR: {learning_rate}")
+    print(f"Rewards: {env.rewards}")
     print(f"{'='*60}\n")
     
     for i_episode in range(1, n_episodes + 1):
