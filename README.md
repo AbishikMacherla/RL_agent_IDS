@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">🛡️ RL-Enhanced Intrusion Detection System</h1>
+  <h1 align="center">RL-Enhanced Intrusion Detection System</h1>
   <p align="center">
     <strong>Deep Reinforcement Learning for Autonomous Network Defence</strong>
   </p>
@@ -23,13 +23,13 @@ The system is evaluated across **4 experimental scenarios** including standard c
 
 ### Key Features
 
-- 🤖 **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
-- 🌲 **ML Baselines** — Random Forest and XGBoost for benchmark comparison
-- 🧪 **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
-- 🔄 **Cross-Dataset Generalisation** — train on CIC-IDS2017, test on CIC-IoT-2023
-- 📊 **Streamlit Dashboard** — interactive visualisation with Plotly charts
-- 🔬 **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
-- ⚙️ **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
+- **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
+- **ML Baselines** — Random Forest and XGBoost for benchmark comparison
+- **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
+- **Cross-Dataset Generalisation** — train on CIC-IDS2017, test on CIC-IoT-2023
+- **Streamlit Dashboard** — interactive visualisation with Plotly charts
+- **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
+- **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
 
 ---
 
@@ -270,5 +270,5 @@ This project was developed as part of a BEng Honours dissertation at Edinburgh N
 ---
 
 <p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/AbishikMacherla">Abishik Macherla</a></sub>
+  <sub>Built with by <a href="https://github.com/AbishikMacherla">Abishik Macherla</a></sub>
 </p>
