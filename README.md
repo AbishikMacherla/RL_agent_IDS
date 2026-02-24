@@ -23,6 +23,7 @@ The system is evaluated across **4 experimental scenarios** including standard c
 
 ### Key Features
 
+<<<<<<< HEAD
 - **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
 - **ML Baselines** — Random Forest and XGBoost for benchmark comparison
 - **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
@@ -30,6 +31,15 @@ The system is evaluated across **4 experimental scenarios** including standard c
 - **Streamlit Dashboard** — interactive visualisation with Plotly charts
 - **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
 - **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
+=======
+- 🤖 **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
+- 🌲 **ML Baselines** — Random Forest and XGBoost for benchmark comparison
+- 🧪 **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
+- 🔄 **Cross-Dataset Generalisation** — train on CIC-IDS2017, test on CIC-IoT-2023
+- 📊 **Interactive HTML Report** — self-contained Plotly visualisation (shareable with supervisor)
+- 🔬 **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
+- ⚙️ **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
+>>>>>>> 9675dad (Replace dashboard with matplotlib figures, add dissertation LaTeX, environment experiments)
 
 ---
 
@@ -75,11 +85,11 @@ The system is evaluated across **4 experimental scenarios** including standard c
         └───────────┬───────────────┘
                     ▼
         ┌───────────────────────────┐
-        │   Streamlit Dashboard     │
-        │   (dashboard.py)          │
+        │   Results Report          │
+        │  (visualise_results.py)   │
         │   • Plotly charts         │
-        │   • Model comparison      │
-        │   • Interactive filtering │
+        │   • Confusion matrices    │
+        │   • Self-contained HTML   │
         └───────────────────────────┘
 ```
 
@@ -114,19 +124,31 @@ Results are stored in `results/all_scenarios_results.json` and viewable via the 
 
 ```
 HONOURS_PROJECT/
-├── Python_code/                 # Source code
-│   ├── data_preprocessing.py    # Dataset loading, cleaning, feature mapping
-│   ├── ids_env.py               # Custom Gymnasium environment for RL training
-│   ├── train_rl_agent.py        # DQN agent architecture & training loop
-│   ├── train_ppo_agent.py       # PPO agent (Stable-Baselines3)
-│   ├── ml_baselines.py          # Random Forest & XGBoost training
-│   ├── run_dqn_experiments.py   # 8 DQN hyperparameter experiments
-│   ├── run_all_scenarios.py     # Master experiment runner (all 4 scenarios)
-│   ├── hyperparameters.py       # Hyperparameter reference documentation
-│   └── dashboard.py             # Streamlit interactive dashboard
-├── dashboard                    # Launch script (./dashboard)
-├── requirements.txt             # Python dependencies
-├── setup_env.sh                 # One-command environment setup
+├── Python_code/                     # Source code
+│   ├── data_preprocessing.py        # Dataset loading, cleaning, feature mapping
+│   ├── ids_env.py                   # Custom Gymnasium environment for RL
+│   ├── train_rl_agent.py            # DQN agent architecture & training
+│   ├── train_ppo_agent.py           # PPO agent (Stable-Baselines3)
+│   ├── ml_baselines.py              # Random Forest & XGBoost training
+│   ├── run_dqn_experiments.py       # 8 DQN hyperparameter experiments
+│   ├── run_all_scenarios.py         # Master experiment runner (4 scenarios)
+│   ├── hyperparameters.py           # Hyperparameter reference documentation
+│   ├── visualise_results.py         # Figure generator (matplotlib + seaborn)
+│   └── visualise_results.ipynb      # Jupyter notebook version
+├── environment_experiments/         # Alternative IDS environment experiments
+│   ├── env_variants.py              # 3 environment variants
+│   ├── run_env_experiments.py       # Experiment runner
+│   └── README.md                    # Time estimates & usage
+├── results/                         # Experimental results
+│   ├── all_scenarios_results.json   # All 4 scenario metrics
+│   ├── dqn_experiments.json         # 8 DQN experiment metrics
+│   └── figures/                     # Generated PNG figures for dissertation
+├── LaTex/                           # Dissertation source
+│   ├── main.tex                     # Main document
+│   ├── references.bib               # Bibliography
+│   └── sections/                    # Section files (methodology, results, etc.)
+├── requirements.txt                 # Python dependencies
+├── setup_env.sh                     # One-command environment setup
 └── README.md
 ```
 
@@ -191,26 +213,37 @@ python run_all_scenarios.py --scenario 1
 python run_dqn_experiments.py
 ```
 
-### 4. Launch Dashboard
+### 4. Generate Figures
 
 ```bash
-# From project root
-./dashboard
+# Generate all figures for dissertation
+python visualise_results.py
 
-# Or run a scenario then open dashboard
-./dashboard --run 1
+# Or use the Jupyter notebook
+jupyter notebook visualise_results.ipynb
+```
+
+### 5. Run Environment Experiments (Optional)
+
+```bash
+# Run all 3 environment variants (~75 min)
+python environment_experiments/run_env_experiments.py
+
+# Or run a specific experiment
+python environment_experiments/run_env_experiments.py --exp 1
 ```
 
 ---
 
-## Dashboard
+## Results
 
-The Streamlit dashboard provides interactive visualisation:
+Results are stored in `results/all_scenarios_results.json` and visualised as publication-quality figures in `results/figures/`.
 
-- **Scenario Pages** — metrics table, grouped bar charts, radar plots, confusion matrices
-- **DQN Experiments** — F1 vs FP trade-off analysis across all 8 experiments
-- **Model Filtering** — view specific model types via sidebar dropdown
-- **Live Reload** — refresh data after running new experiments
+- **Scenario charts** — grouped bar charts per scenario
+- **Cross-scenario summary** — F1 comparison across all 4 scenarios
+- **DQN experiments** — F1 progression, precision–recall trade-off, error analysis
+- **Confusion matrices** — heatmaps with counts and percentages
+- **Reward impact** — how reward structure affects detection behaviour
 
 ---
 
@@ -258,7 +291,8 @@ The Streamlit dashboard provides interactive visualisation:
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikit-learn&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-006600)
 ![Gymnasium](https://img.shields.io/badge/Gymnasium-0.29+-0081A5)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-FF4B4B?logo=streamlit&logoColor=white)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-3.8+-11557c)
+![Seaborn](https://img.shields.io/badge/Seaborn-0.13+-4c72b0)
 ![Plotly](https://img.shields.io/badge/Plotly-5.0+-3F4F75?logo=plotly&logoColor=white)
 
 ---

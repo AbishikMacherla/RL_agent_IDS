@@ -1,0 +1,43 @@
+% Conclusion Section - Updated with actual findings
+
+This study investigated the viability of Reinforcement Learning agents for autonomous network intrusion detection, comparing a custom DQN implementation and PPO agent against Random Forest and XGBoost baselines across four evaluation scenarios on the CIC-IDS2017 and CIC-IoT-2023 datasets.
+
+\subsection{Summary of Contributions}
+
+The key contributions of this work are:
+
+\begin{enumerate}
+    \item \textbf{Reward Engineering as Policy Control}: Eight systematic DQN experiments demonstrated that reward structure is the primary determinant of agent behaviour. Recall was tuneable from 84.85\% to 98.47\% via reward ratios alone, enabling direct encoding of organisational risk preferences into detection policy.
+    
+    \item \textbf{Custom RL Environment}: A Gymnasium-compatible IDS environment was implemented, supporting configurable reward structures and zero-day simulation through attack category exclusion.
+    
+    \item \textbf{Four-Scenario Evaluation}: A comprehensive evaluation across standard classification, two zero-day simulations, and cross-dataset generalisation --- providing an honest assessment of both capabilities and limitations.
+    
+    \item \textbf{Boundary Condition Identification}: The contrasting zero-day results (56.77\% DDoS recall vs. 2.29\% web attack recall) identify precisely where flow-level RL succeeds (volumetric anomalies) and fails (application-layer attacks).
+\end{enumerate}
+
+\subsection{Key Findings}
+
+\begin{itemize}
+    \item \textbf{Standard Classification}: ML baselines achieved near-perfect accuracy (XGBoost: 99.87\% F1), while the best DQN configuration achieved 90.97\% F1 — competitive with early published RL-IDS results.
+    
+    \item \textbf{Zero-Day DDoS}: The DQN agent detected 56.77\% of DDoS attacks never seen during training with 100\% precision, demonstrating that reward-driven learning develops partially transferable anomaly detection capabilities.
+    
+    \item \textbf{Zero-Day Web Attacks}: Near-total failure (2.29\% recall) confirmed that flow-level features cannot capture application-layer attack semantics.
+    
+    \item \textbf{Cross-Dataset}: Universal failure (all models $\leq$ 2.16\% F1) confirmed dataset distribution shift as an unsolved challenge for IDS generalisation.
+    
+    \item \textbf{Inference Speed}: The DQN agent achieved 0.20~$\mu$s per sample (4.9M samples/sec), making it suitable for high-throughput real-time environments.
+\end{itemize}
+
+\subsection{Limitations}
+
+The primary limitations include: (1) offline training on static labelled data, which does not fully exploit RL's potential for online adaptation; (2) a binary action space that oversimplifies real-world response options; (3) feature representation restricted to flow-level statistics, precluding application-layer attack detection; and (4) evaluation on benchmark datasets that may not reflect contemporary network conditions.
+
+\subsection{Future Work}
+
+Promising research directions include: environment design experiments (sliding window observations, sequential episodes, feature subset selection), advanced DQN variants (Rainbow DQN), multi-modal IDS combining flow-level and payload analysis, continual learning for concept drift adaptation \cite{kirkpatrick2017overcoming}, and deployment in network simulation environments such as CybORG++ \cite{emerson2024cyborgplusplus}.
+
+\subsection{Concluding Remarks}
+
+Reinforcement Learning offers a compelling paradigm for autonomous network defence, not as a replacement for traditional machine learning, but as a complementary approach that enables security practitioners to encode complex, context-dependent risk preferences directly into detection systems. The reward-shapeable nature of RL agents provides a control mechanism absent from supervised learning, while the sub-microsecond inference time ensures real-time viability. While the current proof-of-concept demonstrates clear performance gaps relative to ML baselines on known threats, the zero-day DDoS result and the systematic reward engineering analysis contribute novel findings to the RL-IDS literature and provide a foundation for future adaptive defence systems.

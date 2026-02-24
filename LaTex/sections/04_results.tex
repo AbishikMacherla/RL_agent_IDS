@@ -1,0 +1,167 @@
+% Results Section - Complete with actual experimental data
+
+This section presents the experimental results from training and evaluating the RL agents and ML baselines across all four scenarios, followed by the DQN hyperparameter experiment findings.
+
+\subsection{Scenario 1: Standard Classification}
+
+Table~\ref{tab:standard-results} presents the performance of all models on the standard 80/20 train/test split of the CIC-IDS2017 dataset (78 features, 565,576 test samples).
+
+\begin{table}[h]
+\centering
+\caption{Standard Classification Performance on CIC-IDS2017}
+\label{tab:standard-results}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1 Score} \\
+\hline
+Random Forest & 99.90\% & 99.64\% & 99.86\% & 99.75\% \\
+XGBoost & 99.95\% & 99.83\% & 99.90\% & 99.87\% \\
+\hline
+DQN (Exp 7) & 96.62\% & 95.93\% & 86.49\% & 90.97\% \\
+\hline
+\end{tabular}
+\end{table}
+
+The supervised ML baselines achieved near-perfect classification accuracy, with XGBoost marginally outperforming Random Forest across all metrics. The DQN agent achieved 96.62\% accuracy and 90.97\% F1 score. While this is lower than the ML baselines, the agent learned to classify network traffic with over 90\% harmonic accuracy using only reward signals, without access to labelled data during inference.
+
+The DQN agent's 86.49\% recall indicates it missed approximately 15,039 attacks out of 111,311 in the test set, while generating 4,080 false positives. This precision-recall balance reflects the best reward configuration identified through the hyperparameter experiments (symmetric rewards, Section~\ref{sec:dqn-results}).
+
+\subsection{Scenario 2: Zero-Day DDoS Detection}
+
+Table~\ref{tab:zeroday-ddos} presents results where the DQN agent was trained \textit{without} any DDoS attack samples, then tested on 128,025 DDoS-only samples. ML baselines trained \textit{with} DDoS exposure are shown for comparison.
+
+\begin{table}[h]
+\centering
+\caption{Zero-Day DDoS Detection Performance}
+\label{tab:zeroday-ddos}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1 Score} \\
+\hline
+\multicolumn{5}{|l|}{\textit{Trained WITHOUT DDoS (Zero-Day Scenario)}} \\
+\hline
+DQN (No DDoS) & 56.77\% & 100.00\% & 56.77\% & 72.42\% \\
+\hline
+\multicolumn{5}{|l|}{\textit{Trained WITH DDoS (Reference Baseline)}} \\
+\hline
+DQN (Standard) & 98.59\% & 100.00\% & 98.59\% & 99.29\% \\
+Random Forest & 99.97\% & 100.00\% & 99.97\% & 99.99\% \\
+XGBoost & 99.92\% & 100.00\% & 99.92\% & 99.96\% \\
+\hline
+\end{tabular}
+\end{table}
+
+The zero-day DQN agent successfully detected 72,674 out of 128,025 DDoS attacks (56.77\% recall) that it had \textit{never encountered during training}, while maintaining 100\% precision — every sample it flagged as malicious was indeed a DDoS attack. This suggests the agent learned generalised indicators of anomalous network behaviour (e.g., volumetric patterns) that partially overlap with DDoS traffic characteristics, rather than memorising specific attack signatures.
+
+The gap between 56.77\% (zero-day) and 98.59\% (standard DQN) quantifies the generalisation cost of encountering truly novel high-volume attacks. The ML baselines trained with DDoS exposure achieved near-perfect detection, confirming that DDoS patterns are highly learnable when present in training data.
+
+\subsection{Scenario 3: Zero-Day Web Attack Detection}
+
+Table~\ref{tab:zeroday-web} presents results where the DQN agent was trained without web attacks (SQL Injection, XSS, Brute Force), then tested on 2,180 web attack samples.
+
+\begin{table}[h]
+\centering
+\caption{Zero-Day Web Attack Detection Performance}
+\label{tab:zeroday-web}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1 Score} \\
+\hline
+\multicolumn{5}{|l|}{\textit{Trained WITHOUT Web Attacks (Zero-Day Scenario)}} \\
+\hline
+DQN (No Web) & 2.29\% & 100.00\% & 2.29\% & 4.48\% \\
+DQN (Standard) & 3.67\% & 100.00\% & 3.67\% & 7.08\% \\
+\hline
+\multicolumn{5}{|l|}{\textit{Trained WITH Web Attacks (Reference Baseline)}} \\
+\hline
+Random Forest & 98.21\% & 100.00\% & 98.21\% & 99.10\% \\
+XGBoost & 97.25\% & 100.00\% & 97.25\% & 98.60\% \\
+\hline
+\end{tabular}
+\end{table}
+
+The DQN agent trained without web attacks achieved only 2.29\% recall (50 out of 2,180 samples), constituting near-total failure. Even the standard DQN trained \textit{with} web attacks achieved only 3.67\% recall on these specific test samples. This result has important implications: web attacks (SQL injection, XSS) operate at the \textit{application layer} and their distinguishing characteristics lie in HTTP payload content, which is not captured by the 78 flow-level network statistics in CIC-IDS2017. No amount of reward tuning can overcome a fundamental feature representation limitation.
+
+The ML baselines (trained with web attacks) achieved 97--98\% recall, likely by learning correlations between web attack patterns and \textit{other} flow-level features present in the specific dataset. However, even these models cannot generalise web attack detection beyond the dataset distribution.
+
+\subsection{Scenario 4: Cross-Dataset Generalisation}
+
+Table~\ref{tab:crossdataset} presents results where all models were trained on CIC-IDS2017 using 12 mapped features and tested on the CIC-IoT-2023 dataset (937,393 samples).
+
+\begin{table}[h]
+\centering
+\caption{Cross-Dataset Generalisation (CIC-IDS2017 $\rightarrow$ CIC-IoT-2023)}
+\label{tab:crossdataset}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Latency ($\mu$s)} \\
+\hline
+Random Forest & 38.26\% & 4.67\% & 0.03\% & 0.07\% & 1.05 \\
+XGBoost & 38.65\% & 0.00\% & 0.00\% & 0.00\% & 0.55 \\
+DQN & 12.44\% & 3.44\% & 1.58\% & 2.16\% & \textbf{0.20} \\
+\hline
+\end{tabular}
+\end{table}
+
+All models failed catastrophically when evaluated on CIC-IoT-2023 traffic. The Random Forest achieved only 0.03\% recall (detecting 191 out of 575,051 attacks), while XGBoost detected zero attacks entirely. The DQN agent, while achieving only 2.16\% F1, was the only model to detect any meaningful number of attacks (9,079), though at the cost of 254,797 false positives.
+
+This universal failure is attributed to the significant distribution shift between datasets: CIC-IDS2017 (2017). enterprise network traffic) and CIC-IoT-2023 (IoT device traffic) have fundamentally different traffic characteristics despite sharing 12 common feature names. This confirms that IDS models trained on one network environment cannot be directly transferred to another without retraining or domain adaptation.
+
+Notably, the DQN agent achieved the fastest inference time at 0.20~$\mu$s per sample (4.9 million samples per second), compared to 1.05~$\mu$s for Random Forest and 0.55~$\mu$s for XGBoost.
+
+\subsection{DQN Hyperparameter Experiments}
+\label{sec:dqn-results}
+
+Table~\ref{tab:dqn-experiments} presents the results of 8 systematic DQN experiments across two phases.
+
+\begin{table}[h]
+\centering
+\small
+\caption{DQN Hyperparameter Experiment Results}
+\label{tab:dqn-experiments}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Experiment} & \textbf{Acc\%} & \textbf{Prec\%} & \textbf{Rec\%} & \textbf{F1\%} & \textbf{FP} & \textbf{FN} \\
+\hline
+\multicolumn{7}{|l|}{\textit{Phase 1: Reward Structure Tuning (64-64, 2000 ep)}} \\
+\hline
+E1: Baseline (10:1)    & 80.52 & 52.33 & 98.18 & 68.26 & 93,800 & 2,028 \\
+E2: Lower FN Penalty   & 80.74 & 52.61 & 97.84 & 68.44 & 92,692 & 2,407 \\
+E3: Higher FP Penalty   & 90.00 & 66.78 & 94.58 & 78.28 & 49,218 & 6,033 \\
+E4: 5:1 Ratio           & 79.43 & 51.25 & 98.47 & 67.42 & 98,004 & 1,706 \\
+E5: Symmetric (1:1)     & 96.08 & 94.56 & 84.85 & 89.44 & 5,144  & 16,865 \\
+\hline
+\multicolumn{7}{|l|}{\textit{Phase 2: Architecture \& Training (symmetric rewards)}} \\
+\hline
+E6: 128-128 network     & 96.29 & 94.70 & 85.92 & 90.10 & 5,077  & 15,673 \\
+E7: 5000 episodes       & 96.62 & 95.93 & 86.49 & 90.97 & 4,080  & 15,039 \\
+E8: Slower LR ($10^{-4}$) & 96.18 & 95.78 & 84.32 & 89.69 & 3,776  & 17,449 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Phase 1 Findings: Reward Structure as a Policy Control Mechanism}
+
+The Phase 1 results demonstrate that reward structure is the \textit{primary determinant} of agent behaviour. Across the five configurations:
+
+\begin{itemize}
+    \item \textbf{Recall range}: 84.85\% (symmetric) to 98.47\% (5:1 ratio) — a 13.62 percentage point range controlled entirely by reward ratios.
+    
+    \item \textbf{FP range}: 4,080 (Exp 7, symmetric) to 98,004 (Exp 4, 5:1) — a 24$\times$ difference in false positive volume.
+    
+    \item \textbf{F1 Score}: Higher reward asymmetry (Exp 1, 4) achieved high recall ($>$98\%) but poor F1 ($\sim$68\%) due to excessive false positives. The symmetric configuration (Exp 5) achieved the best F1 (89.44\%) by balancing precision and recall.
+\end{itemize}
+
+This finding has practical implications: a network administrator could \textit{tune} the IDS security posture by adjusting a single hyperparameter (reward ratio) rather than retraining or changing the model architecture.
+
+\subsubsection{Phase 2 Findings: Architecture and Training}
+
+With the symmetric reward structure fixed, three architectural variations were tested:
+
+\begin{itemize}
+    \item \textbf{Larger network (Exp 6)}: The 128-128 architecture provided minimal improvement (+0.66\% F1) over the 64-64 baseline, suggesting the bottleneck is not model capacity.
+    
+    \item \textbf{Extended training (Exp 7)}: Training for 5,000 episodes yielded the best overall F1 (90.97\%) with the lowest false positive count (4,080), representing the optimal configuration.
+    
+    \item \textbf{Slower learning rate (Exp 8)}: Reducing the learning rate from $5 \times 10^{-4}$ to $1 \times 10^{-4}$ slightly reduced recall (84.32\%) without improving F1, suggesting the original learning rate was already near-optimal.
+\end{itemize}

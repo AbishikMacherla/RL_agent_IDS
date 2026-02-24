@@ -1,0 +1,121 @@
+% Discussion Section - Updated with actual results and literature comparison
+
+This section discusses the implications of the experimental findings, compares results with published research, addresses limitations, and outlines future directions.
+
+\subsection{Implications for Autonomous Network Defence}
+
+\subsubsection{RL as Tunable Risk Management}
+
+The 8 DQN hyperparameter experiments provide the strongest evidence for RL's value proposition in IDS: the reward structure functions as a direct \textit{policy control mechanism}. Across the five Phase 1 configurations, recall ranged from 84.85\% to 98.47\%, while false positives ranged from 4,080 to 98,004 --- controlled entirely by modifying four reward parameters.
+
+This tunability has practical significance for different deployment contexts:
+
+\begin{itemize}
+    \item \textbf{High-Security Environments}: Critical infrastructure operators could deploy the asymmetric configuration (Exp 1/4, 98\%+ recall) accepting $\sim$94,000 false positives as the cost of near-total attack detection.
+    \item \textbf{User-Sensitive Contexts}: Consumer-facing services could deploy the symmetric configuration (Exp 5/7, 90\%+ F1) with only $\sim$4,000 false positives.
+\end{itemize}
+
+This level of risk-posture adjustment through a single hyperparameter is not achievable with standard supervised learning, where cost-sensitive reweighting provides limited and less interpretable control.
+
+\subsubsection{Zero-Day Detection: Volumetric vs. Application-Layer Attacks}
+
+The contrasting zero-day results between DDoS (56.77\% recall) and web attacks (2.29\% recall) reveal a fundamental boundary condition for flow-level RL-IDS:
+
+\begin{itemize}
+    \item \textbf{DDoS (56.77\% recall)}: DDoS attacks generate volumetric anomalies --- high packet counts, unusual byte rates, abnormal flow durations --- that share statistical characteristics with other attack types the agent learned during training. The agent's 100\% precision confirms it identified genuine anomalous patterns rather than making random guesses.
+    
+    \item \textbf{Web attacks (2.29\% recall)}: SQL injection, XSS, and brute force attacks are distinguished by their HTTP payload content, not by flow-level statistics. The 78 CIC-IDS2017 features capture network-layer behaviour but not application-layer semantics, making these attacks effectively invisible to any flow-level classifier --- RL or ML.
+\end{itemize}
+
+This finding has implications for IDS architecture: effective detection of both volumetric and application-layer threats requires a multi-modal approach combining flow-level analysis with deep packet inspection (DPI).
+
+\subsubsection{Cross-Dataset Generalisation}
+
+The catastrophic failure of all models on CIC-IoT-2023 (F1 $\leq$ 2.16\%) demonstrates a well-documented challenge in IDS research: \textit{distribution shift}. Despite mapping 12 common features, the statistical distributions of CIC-IDS2017 (2017 enterprise traffic) and CIC-IoT-2023 (IoT device traffic) are fundamentally different. This result is consistent with findings by Mondragon et al. \cite{mondragon2025advanced}, who documented similar cross-dataset failures.
+
+However, the DQN agent's inference speed (0.20~$\mu$s per sample, 4.9M samples/sec) makes it suitable for high-throughput environments where real-time classification is required, even if it requires per-network retraining.
+
+\subsection{Comparison with Published Research}
+
+Table~\ref{tab:literature-comparison} compares this study's results with published RL-IDS research.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Comparison with Published RL-IDS Research}
+\label{tab:literature-comparison}
+\begin{tabular}{|l|l|c|l|}
+\hline
+\textbf{Study} & \textbf{Method} & \textbf{F1/Acc} & \textbf{Notes} \\
+\hline
+Hsu \& Matsuoka (2020) \cite{hsu2020deep} & DRL & 90\% Acc & Binary, CIC-IDS2017 \\
+Suwannalai et al. (2020) \cite{suwannalai2020network} & Adversarial DQN & 91\% Acc & With adversarial training \\
+Alavizadeh et al. (2022) \cite{alavizadeh2022deepq} & DQN & 84\% F1 & CIC-IDS2017 \\
+Ren et al. (2022) \cite{ren2022id} & DDQN+FS & 97.8\% F1 & Feature selection DRL \\
+Sharma (2025) \cite{sharma2025rainbow} & Rainbow DQN & 99.8\% Acc & 7 DQN enhancements \\
+\hline
+\textbf{This study (Exp 7)} & \textbf{DQN} & \textbf{90.97\% F1} & Binary, 78 features \\
+\textbf{This study (ML)} & \textbf{XGBoost} & \textbf{99.87\% F1} & Same dataset \\
+\hline
+\end{tabular}
+\end{table}
+
+The comparison reveals several insights:
+
+\begin{enumerate}
+    \item \textbf{Competitive with early work}: The DQN agent's 90.97\% F1 exceeds or matches early published DQN results (Hsu \& Matsuoka 2020, Alavizadeh et al. 2022), demonstrating competent implementation.
+    
+    \item \textbf{Gap explained by enhancements}: Higher-performing systems (Rainbow DQN, DDQN+FS) employ additional techniques --- prioritised replay, distributional estimation, feature selection --- that were deliberately excluded to maintain a clear proof-of-concept demonstration.
+    
+    \item \textbf{ML baselines match literature}: The XGBoost baseline's 99.87\% F1 aligns with published ML benchmarks on CIC-IDS2017 \cite{maseer2021benchmarking, mondragon2025advanced}, confirming evaluation validity.
+    
+    \item \textbf{Unique contribution}: No comparable study systematically evaluates reward structure impact across 8 configurations on CIC-IDS2017, nor tests flow-level RL agents on zero-day web attacks, making these contributions novel.
+\end{enumerate}
+
+\subsection{Limitations}
+
+Several limitations constrain the generalisability of these findings:
+
+\begin{enumerate}
+    \item \textbf{Offline Training on Static Data}: The RL agents were trained on labelled data with immediate feedback. While framed as reinforcement learning, the training process more closely resembles contextual bandits or offline RL, as the agent receives ground-truth rewards rather than delayed, partial, or noisy signals typical of production environments.
+    
+    \item \textbf{Binary Action Space}: The ``Allow/Block'' action space, while appropriate for proof-of-concept, does not capture the full range of responses available in real IDS deployments (rate limiting, quarantine, escalation, honeypot redirection).
+    
+    \item \textbf{Single Environment Configuration}: The IDS environment used a fixed episode structure (random start, 1,000 steps, independent samples) throughout all experiments. Alternative designs --- sliding window observations, sequential episode ordering, or feature subset selection --- were not evaluated but could yield different results.
+    
+    \item \textbf{Dataset Limitations}: CIC-IDS2017 represents 2017 network conditions. Real-world implementations would face concept drift as attack patterns evolve. The cross-dataset experiment (Scenario 4) confirmed this limitation.
+    
+    \item \textbf{Feature Representation}: The flow-level feature set cannot capture application-layer attacks, as demonstrated by Scenario 3. This is a fundamental limitation of network flow analysis, not specific to the RL approach.
+\end{enumerate}
+
+\subsection{Justification of the RL Framework}
+
+A valid question is whether the RL framing is necessary. We argue it provides distinct advantages:
+
+\begin{enumerate}
+    \item \textbf{Interpretable Risk Tuning}: The 8-experiment reward analysis demonstrates that RL provides a mechanism to encode organisational risk preferences directly into detection policy. The recall range of 84.85\%--98.47\% via reward adjustment alone is more interpretable than adjusting class weights or decision thresholds in supervised learning.
+    
+    \item \textbf{Foundation for Online Learning}: While this study used offline training, the RL framework provides a natural extension path to online learning, where agents could update from analyst feedback, honeypot data, or red-team exercises.
+    
+    \item \textbf{Inference Speed}: The DQN agent's 0.20~$\mu$s inference time (4.9M samples/sec) makes it suitable for real-time high-throughput environments.
+\end{enumerate}
+
+\subsection{Future Research Directions}
+
+Based on the findings and limitations identified, several directions for future work are proposed:
+
+\begin{itemize}
+    \item \textbf{Environment Variations}: Testing alternative environment designs including sliding window observations (temporal context), sequential episode ordering, and feature subset selection could reveal whether environment structure affects agent performance as significantly as reward structure.
+    
+    \item \textbf{Advanced DQN Variants}: Implementing Rainbow DQN enhancements (prioritised replay, dueling networks, noisy exploration) could close the gap with supervised learning baselines.
+    
+    \item \textbf{Multi-Modal IDS}: Combining flow-level RL with deep packet inspection could address the application-layer detection gap identified in Scenario 3.
+    
+    \item \textbf{Extended PPO Training}: Increasing PPO training beyond 1,000,000 timesteps and investigating policy gradient methods better suited to discrete action spaces.
+    
+    \item \textbf{Continual Learning}: Addressing concept drift through techniques like Elastic Weight Consolidation \cite{kirkpatrick2017overcoming} or progressive network training.
+    
+    \item \textbf{CybORG++ Integration}: Migrating the environment to the CybORG++ framework \cite{emerson2024cyborgplusplus} for proactive defence scenarios beyond detection.
+    
+    \item \textbf{Adversarial Robustness}: Evaluating agent behaviour under adversarial evasion attacks \cite{merzouk2025adversarial} to assess deployment readiness.
+\end{itemize}
