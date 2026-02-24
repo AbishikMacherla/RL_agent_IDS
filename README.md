@@ -23,7 +23,6 @@ The system is evaluated across **4 experimental scenarios** including standard c
 
 ### Key Features
 
-<<<<<<< HEAD
 - **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
 - **ML Baselines** — Random Forest and XGBoost for benchmark comparison
 - **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
@@ -31,16 +30,6 @@ The system is evaluated across **4 experimental scenarios** including standard c
 - **Streamlit Dashboard** — interactive visualisation with Plotly charts
 - **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
 - **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
-=======
-- 🤖 **DQN + PPO Agents** — two RL approaches trained via custom Gymnasium environments
-- 🌲 **ML Baselines** — Random Forest and XGBoost for benchmark comparison
-- 🧪 **Zero-Day Simulation** — label-exclusion to test detection of unseen attack types
-- 🔄 **Cross-Dataset Generalisation** — train on CIC-IDS2017, test on CIC-IoT-2023
-- 📊 **Interactive HTML Report** — self-contained Plotly visualisation (shareable with supervisor)
-- 🔬 **8 DQN Experiments** — systematic hyperparameter tuning (reward structure, architecture, training)
-- ⚙️ **Reproducible Pipeline** — documented hyperparameters and one-command experiment runner
->>>>>>> 9675dad (Replace dashboard with matplotlib figures, add dissertation LaTeX, environment experiments)
-
 ---
 
 ## Architecture
