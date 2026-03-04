@@ -1,0 +1,332 @@
+{
+  "scenario_1": {
+    "Random Forest": {
+      "Accuracy": 99.90,
+      "Precision": 99.64,
+      "Recall": 99.86,
+      "F1": 99.75,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          453866,
+          399
+        ],
+        [
+          158,
+          111153
+        ]
+      ],
+      "TN": 453866,
+      "FP": 399,
+      "FN": 158,
+      "TP": 111153
+    },
+    "XGBoost": {
+      "Accuracy": 99.95,
+      "Precision": 99.83,
+      "Recall": 99.90,
+      "F1": 99.87,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          454076,
+          189
+        ],
+        [
+          106,
+          111205
+        ]
+      ],
+      "TN": 454076,
+      "FP": 189,
+      "FN": 106,
+      "TP": 111205
+    },
+    "DQN": {
+      "Accuracy": 96.62,
+      "Precision": 95.93,
+      "Recall": 86.49,
+      "F1": 90.97,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          450185,
+          4080
+        ],
+        [
+          15039,
+          96272
+        ]
+      ],
+      "TN": 450185,
+      "FP": 4080,
+      "FN": 15039,
+      "TP": 96272
+    }
+  },
+  "scenario_2": {
+    "DQN (No DDoS)": {
+      "Accuracy": 56.77,
+      "Precision": 100.0,
+      "Recall": 56.77,
+      "F1": 72.42,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          55351,
+          72674
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 55351,
+      "TP": 72674
+    },
+    "DQN (Standard)": {
+      "Accuracy": 98.59,
+      "Precision": 100.0,
+      "Recall": 98.59,
+      "F1": 99.29,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          1803,
+          126222
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 1803,
+      "TP": 126222
+    },
+    "Random Forest": {
+      "Accuracy": 99.97,
+      "Precision": 100.0,
+      "Recall": 99.97,
+      "F1": 99.99,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          36,
+          127989
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 36,
+      "TP": 127989
+    },
+    "XGBoost": {
+      "Accuracy": 99.92,
+      "Precision": 100.0,
+      "Recall": 99.92,
+      "F1": 99.96,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          108,
+          127917
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 108,
+      "TP": 127917
+    }
+  },
+  "scenario_3": {
+    "DQN (No Web)": {
+      "Accuracy": 2.29,
+      "Precision": 100.0,
+      "Recall": 2.29,
+      "F1": 4.48,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          2130,
+          50
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 2130,
+      "TP": 50
+    },
+    "DQN (Standard)": {
+      "Accuracy": 3.67,
+      "Precision": 100.0,
+      "Recall": 3.67,
+      "F1": 7.08,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          2100,
+          80
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 2100,
+      "TP": 80
+    },
+    "Random Forest": {
+      "Accuracy": 98.21,
+      "Precision": 100.0,
+      "Recall": 98.21,
+      "F1": 99.10,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          39,
+          2141
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 39,
+      "TP": 2141
+    },
+    "XGBoost": {
+      "Accuracy": 97.25,
+      "Precision": 100.0,
+      "Recall": 97.25,
+      "F1": 98.60,
+      "ROC_AUC": null,
+      "Latency_us": null,
+      "Throughput": null,
+      "ConfusionMatrix": [
+        [
+          0,
+          0
+        ],
+        [
+          60,
+          2120
+        ]
+      ],
+      "TN": 0,
+      "FP": 0,
+      "FN": 60,
+      "TP": 2120
+    }
+  },
+  "scenario_4": {
+    "Random Forest": {
+      "Accuracy": 38.26,
+      "Precision": 4.67,
+      "Recall": 0.03,
+      "F1": 0.07,
+      "ROC_AUC": 68.07,
+      "Latency_us": 1.05,
+      "Throughput": 950768,
+      "ConfusionMatrix": [
+        [
+          358439,
+          3903
+        ],
+        [
+          574860,
+          191
+        ]
+      ],
+      "TN": 358439,
+      "FP": 3903,
+      "FN": 574860,
+      "TP": 191
+    },
+    "XGBoost": {
+      "Accuracy": 38.65,
+      "Precision": 0.0,
+      "Recall": 0.0,
+      "F1": 0.0,
+      "ROC_AUC": 25.79,
+      "Latency_us": 0.55,
+      "Throughput": 1815112,
+      "ConfusionMatrix": [
+        [
+          362342,
+          0
+        ],
+        [
+          575051,
+          0
+        ]
+      ],
+      "TN": 362342,
+      "FP": 0,
+      "FN": 575051,
+      "TP": 0
+    },
+    "DQN": {
+      "Accuracy": 12.44,
+      "Precision": 3.44,
+      "Recall": 1.58,
+      "F1": 2.16,
+      "ROC_AUC": 9.19,
+      "Latency_us": 0.2,
+      "Throughput": 4934804,
+      "ConfusionMatrix": [
+        [
+          107545,
+          254797
+        ],
+        [
+          565972,
+          9079
+        ]
+      ],
+      "TN": 107545,
+      "FP": 254797,
+      "FN": 565972,
+      "TP": 9079
+    }
+  }
+}

@@ -1,0 +1,258 @@
+{
+  "exp1_baseline": {
+    "name": "Exp 1: Baseline (Current 10:1)",
+    "rewards": {
+      "tp": 10.0,
+      "tn": 1.0,
+      "fn": -10.0,
+      "fp": -1.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0005,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 82.98,
+      "Precision": 53.7,
+      "Recall": 98.18,
+      "F1": 69.43,
+      "ConfusionMatrix": [
+        [
+          360057,
+          94208
+        ],
+        [
+          2029,
+          109282
+        ]
+      ],
+      "TN": 360057,
+      "FP": 94208,
+      "FN": 2029,
+      "TP": 109282
+    }
+  },
+  "exp2_lower_fn": {
+    "name": "Exp 2: Lower FN Penalty (-5)",
+    "rewards": {
+      "tp": 10.0,
+      "tn": 1.0,
+      "fn": -5.0,
+      "fp": -1.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0005,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 48.4,
+      "Precision": 27.32,
+      "Recall": 97.71,
+      "F1": 42.7,
+      "ConfusionMatrix": [
+        [
+          164972,
+          289293
+        ],
+        [
+          2549,
+          108762
+        ]
+      ],
+      "TN": 164972,
+      "FP": 289293,
+      "FN": 2549,
+      "TP": 108762
+    }
+  },
+  "exp3_higher_fp": {
+    "name": "Exp 3: Higher FP Penalty (-3)",
+    "rewards": {
+      "tp": 10.0,
+      "tn": 1.0,
+      "fn": -10.0,
+      "fp": -3.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0005,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 93.72,
+      "Precision": 77.56,
+      "Recall": 95.83,
+      "F1": 85.73,
+      "ConfusionMatrix": [
+        [
+          423399,
+          30866
+        ],
+        [
+          4637,
+          106674
+        ]
+      ],
+      "TN": 423399,
+      "FP": 30866,
+      "FN": 4637,
+      "TP": 106674
+    }
+  },
+  "exp4_5to1_ratio": {
+    "name": "Exp 4: 5:1 Ratio",
+    "rewards": {
+      "tp": 5.0,
+      "tn": 1.0,
+      "fn": -5.0,
+      "fp": -1.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0005,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 94.82,
+      "Precision": 81.58,
+      "Recall": 95.13,
+      "F1": 87.84,
+      "ConfusionMatrix": [
+        [
+          430364,
+          23901
+        ],
+        [
+          5424,
+          105887
+        ]
+      ],
+      "TN": 430364,
+      "FP": 23901,
+      "FN": 5424,
+      "TP": 105887
+    }
+  },
+  "exp5_symmetric": {
+    "name": "Exp 5: Symmetric (No Bias)",
+    "rewards": {
+      "tp": 1.0,
+      "tn": 1.0,
+      "fn": -1.0,
+      "fp": -1.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0005,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 96.33,
+      "Precision": 96.05,
+      "Recall": 84.85,
+      "F1": 90.1,
+      "ConfusionMatrix": [
+        [
+          450384,
+          3881
+        ],
+        [
+          16864,
+          94447
+        ]
+      ],
+      "TN": 450384,
+      "FP": 3881,
+      "FN": 16864,
+      "TP": 94447
+    }
+  },
+  "exp6_bigger_brain": {
+    "name": "Exp 6: Bigger Brain (128-128)",
+    "rewards": {
+      "tp": 1.0,
+      "tn": 1.0,
+      "fn": -1.0,
+      "fp": -1.0
+    },
+    "network": "128-128",
+    "learning_rate": 0.0005,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 97.03,
+      "Precision": 92.23,
+      "Recall": 92.72,
+      "F1": 92.47,
+      "ConfusionMatrix": [
+        [
+          445574,
+          8691
+        ],
+        [
+          8106,
+          103205
+        ]
+      ],
+      "TN": 445574,
+      "FP": 8691,
+      "FN": 8106,
+      "TP": 103205
+    }
+  },
+  "exp7_more_episodes": {
+    "name": "Exp 7: More Episodes (5000)",
+    "rewards": {
+      "tp": 1.0,
+      "tn": 1.0,
+      "fn": -1.0,
+      "fp": -1.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0005,
+    "episodes": 5000,
+    "results": {
+      "Accuracy": 97.28,
+      "Precision": 92.8,
+      "Recall": 93.41,
+      "F1": 93.1,
+      "ConfusionMatrix": [
+        [
+          446202,
+          8063
+        ],
+        [
+          7340,
+          103971
+        ]
+      ],
+      "TN": 446202,
+      "FP": 8063,
+      "FN": 7340,
+      "TP": 103971
+    }
+  },
+  "exp8_slower_lr": {
+    "name": "Exp 8: Slower Learning Rate (1e-4)",
+    "rewards": {
+      "tp": 1.0,
+      "tn": 1.0,
+      "fn": -1.0,
+      "fp": -1.0
+    },
+    "network": "64-64",
+    "learning_rate": 0.0001,
+    "episodes": 2000,
+    "results": {
+      "Accuracy": 96.42,
+      "Precision": 93.57,
+      "Recall": 87.84,
+      "F1": 90.61,
+      "ConfusionMatrix": [
+        [
+          447545,
+          6720
+        ],
+        [
+          13536,
+          97775
+        ]
+      ],
+      "TN": 447545,
+      "FP": 6720,
+      "FN": 13536,
+      "TP": 97775
+    }
+  }
+}
